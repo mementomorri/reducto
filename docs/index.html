@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="DeHydrator - Semantic Code Compression Engine. Autonomously refactor codebases to reduce complexity while maintaining 100% functional parity.">
+    <title>DeHydrator - Semantic Code Compression Engine</title>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f6f8fa;
+            --bg-tertiary: #eaeef2;
+            --text-primary: #1f2328;
+            --text-secondary: #656d76;
+            --text-muted: #8b949e;
+            --accent: #0969da;
+            --accent-hover: #0550ae;
+            --border: #d1d9e0;
+            --code-bg: #f6f8fa;
+            --success: #1a7f37;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #0d1117;
+                --bg-secondary: #161b22;
+                --bg-tertiary: #21262d;
+                --text-primary: #e6edf3;
+                --text-secondary: #8b949e;
+                --text-muted: #6e7681;
+                --accent: #58a6ff;
+                --accent-hover: #79b8ff;
+                --border: #30363d;
+                --code-bg: #161b22;
+                --success: #3fb950;
+            }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        header {
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            background: var(--bg-primary);
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent), #a371f7);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        nav a {
+            margin-left: 24px;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        nav a:hover {
+            color: var(--text-primary);
+        }
+
+        .hero {
+            padding: 96px 0 80px;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+
+        .hero .tagline {
+            font-size: 1.5rem;
+            color: var(--accent);
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+
+        .hero .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 640px;
+            margin: 0 auto 40px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 500;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+            text-decoration: none;
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-tertiary);
+            text-decoration: none;
+        }
+
+        .features {
+            padding: 80px 0;
+            background: var(--bg-secondary);
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 48px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 16px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.9375rem;
+        }
+
+        .how-it-works {
+            padding: 80px 0;
+        }
+
+        .steps {
+            display: flex;
+            gap: 48px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .step {
+            flex: 1;
+            min-width: 240px;
+            max-width: 320px;
+            text-align: center;
+        }
+
+        .step-number {
+            width: 64px;
+            height: 64px;
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0 auto 16px;
+        }
+
+        .step h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .step p {
+            color: var(--text-secondary);
+        }
+
+        .installation {
+            padding: 80px 0;
+            background: var(--bg-secondary);
+        }
+
+        .install-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 32px;
+        }
+
+        .install-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .install-card h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .install-card h3 .badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            background: var(--success);
+            color: white;
+            border-radius: 9999px;
+            font-weight: 500;
+        }
+
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+        }
+
+        .code-comment {
+            color: var(--text-muted);
+        }
+
+        .code-command {
+            color: var(--text-primary);
+        }
+
+        .code-output {
+            color: var(--text-secondary);
+        }
+
+        .demo {
+            padding: 80px 0;
+        }
+
+        .terminal {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .terminal-header {
+            background: var(--bg-tertiary);
+            padding: 12px 16px;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .terminal-dot.red { background: #ff5f56; }
+        .terminal-dot.yellow { background: #ffbd2e; }
+        .terminal-dot.green { background: #27c93f; }
+
+        .terminal-body {
+            padding: 24px;
+            font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+            font-size: 0.875rem;
+            line-height: 1.7;
+        }
+
+        .terminal-prompt {
+            color: var(--success);
+        }
+
+        .tech-stack {
+            padding: 80px 0;
+            background: var(--bg-secondary);
+        }
+
+        .tech-badges {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .tech-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 9999px;
+            font-weight: 500;
+        }
+
+        .tech-badge img {
+            width: 24px;
+            height: 24px;
+        }
+
+        footer {
+            padding: 48px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 32px;
+            justify-content: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+        }
+
+        .footer-copyright {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero .tagline {
+                font-size: 1.25rem;
+            }
+
+            .hero .subtitle {
+                font-size: 1rem;
+            }
+
+            .install-options {
+                grid-template-columns: 1fr;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            nav a:first-child {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">
+                    <div class="logo-icon">D</div>
+                    DeHydrator
+                </a>
+                <nav>
+                    <a href="#features">Features</a>
+                    <a href="#how-it-works">How It Works</a>
+                    <a href="#installation">Installation</a>
+                    <a href="https://github.com/alexkarsten/dehydrate">GitHub</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1>DeHydrator</h1>
+                <p class="tagline">Semantic Code Compression Engine</p>
+                <p class="subtitle">Autonomously refactor codebases to reduce complexity and eliminate duplication while maintaining 100% functional parity.</p>
+                <div class="cta-buttons">
+                    <a href="#installation" class="btn btn-primary">Get Started</a>
+                    <a href="https://github.com/alexkarsten/dehydrate" class="btn btn-secondary">View on GitHub</a>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="features">
+            <div class="container">
+                <h2 class="section-title">Features</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🔍</div>
+                        <h3>Cross-File Deduplication</h3>
+                        <p>Detect semantically similar code blocks across the entire repository using vector embeddings, even with different variable names.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">✨</div>
+                        <h3>Idiomatic Transformation</h3>
+                        <p>Transform verbose code into idiomatic patterns - Pythonic comprehensions, modern ES6+, Go idioms, and more.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🏗️</div>
+                        <h3>Design Pattern Injection</h3>
+                        <p>Automatically suggest and apply standard design patterns like Factory, Strategy, and Observer to simplify complex logic.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <h3>Complexity Hotspots</h3>
+                        <p>Identify functions and modules exceeding complexity thresholds with cyclomatic and cognitive complexity metrics.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔒</div>
+                        <h3>Git-Integrated Safety</h3>
+                        <p>Automatic checkpoints, rollback on test failure, and human-in-the-loop approval for every change.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🤖</div>
+                        <h3>Local-First AI</h3>
+                        <p>Flexible model routing with LiteLLM - use local models (Ollama) or cloud providers (OpenAI, Anthropic, Google).</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="how-it-works" class="how-it-works">
+            <div class="container">
+                <h2 class="section-title">How It Works</h2>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <h3>Scan</h3>
+                        <p>Analyze your codebase with Tree-sitter parsing to build a complete dependency graph and identify complexity hotspots.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <h3>Plan</h3>
+                        <p>LLM-powered agents generate detailed refactoring plans with diffs, showing exactly what will change and why.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <h3>Apply</h3>
+                        <p>Execute changes safely with automatic test validation, git checkpoints, and instant rollback on failure.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="installation" class="installation">
+            <div class="container">
+                <h2 class="section-title">Installation</h2>
+                <div class="install-options">
+                    <div class="install-card">
+                        <h3>
+                            <span>📦 Download Binary</span>
+                            <span class="badge">Recommended</span>
+                        </h3>
+                        <p style="color: var(--text-secondary); margin-bottom: 16px;">Download the latest release for your platform:</p>
+                        <pre><code class="code-comment"># Download from GitHub Releases</code>
+<span class="code-command">curl -sSL https://github.com/alexkarsten/dehydrate/releases/latest/download/dehydrate-linux-amd64 -o dehydrate</span>
+<span class="code-command">chmod +x dehydrate</span>
+<span class="code-command">sudo mv dehydrate /usr/local/bin/</span></code></pre>
+                        <p style="margin-top: 16px;">
+                            <a href="https://github.com/alexkarsten/dehydrate/releases">View all releases →</a>
+                        </p>
+                    </div>
+                    <div class="install-card">
+                        <h3>🔧 Build from Source</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: 16px;">Requires Go 1.21+ and Python 3.10+:</p>
+                        <pre><code class="code-comment"># Clone the repository</code>
+<span class="code-command">git clone https://github.com/alexkarsten/dehydrate.git</span>
+<span class="code-command">cd dehydrate</span>
+
+<span class="code-comment"># Install Python dependencies</span>
+<span class="code-command">pip install -r python/requirements.txt</span>
+
+<span class="code-comment"># Build the binary</span>
+<span class="code-command">go build -o dehydrate ./cmd/dehydrate</span></code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="demo">
+            <div class="container">
+                <h2 class="section-title">Quick Start</h2>
+                <div class="terminal">
+                    <div class="terminal-header">
+                        <div class="terminal-dot red"></div>
+                        <div class="terminal-dot yellow"></div>
+                        <div class="terminal-dot green"></div>
+                    </div>
+                    <div class="terminal-body">
+                        <p><span class="terminal-prompt">$</span> dehydrate analyze .</p>
+                        <p class="code-output">Analyzing repository: /home/user/my-project</p>
+                        <br>
+                        <p class="code-output">=== Analysis Results ===</p>
+                        <p class="code-output">Total files: 127</p>
+                        <p class="code-output">Total symbols: 892</p>
+                        <p class="code-output">Complexity hotspots: 8</p>
+                        <p class="code-output">Potential duplicates: 4</p>
+                        <br>
+                        <p class="code-output">--- Complexity Hotspots ---</p>
+                        <p class="code-output">  src/utils/parser.py:142 - parse_config (CC: 18)</p>
+                        <p class="code-output">  src/api/handler.go:67 - HandleRequest (CC: 15)</p>
+                        <br>
+                        <p class="code-output">--- Potential Duplicates ---</p>
+                        <p class="code-output">  Similarity: 94.2%</p>
+                        <p class="code-output">    - src/auth/validator.py:23-45</p>
+                        <p class="code-output">    - src/api/validator.py:12-34</p>
+                        <br>
+                        <p><span class="terminal-prompt">$</span> dehydrate deduplicate --commit .</p>
+                        <p class="code-output">Running deduplication...</p>
+                        <p class="code-output">Refactoring completed successfully!</p>
+                        <p class="code-output">LOC reduced: 127</p>
+                        <p class="code-output">Changes committed to git.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="tech-stack">
+            <div class="container">
+                <h2 class="section-title">Built With</h2>
+                <div class="tech-badges">
+                    <div class="tech-badge">
+                        <span>🐹</span> Go 1.21+
+                    </div>
+                    <div class="tech-badge">
+                        <span>🐍</span> Python 3.10+
+                    </div>
+                    <div class="tech-badge">
+                        <span>⚡</span> FastAPI
+                    </div>
+                    <div class="tech-badge">
+                        <span>🧠</span> LiteLLM
+                    </div>
+                    <div class="tech-badge">
+                        <span>🌳</span> Tree-sitter
+                    </div>
+                    <div class="tech-badge">
+                        <span>🔍</span> ChromaDB
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-links">
+                <a href="https://github.com/alexkarsten/dehydrate">GitHub</a>
+                <a href="https://github.com/alexkarsten/dehydrate/blob/main/LICENSE">MIT License</a>
+                <a href="https://github.com/alexkarsten/dehydrate/issues">Report Issue</a>
+            </div>
+            <p class="footer-copyright">© 2026 Alex Karsten. Released under the MIT License.</p>
+        </div>
+    </footer>
+</body>
+</html>
