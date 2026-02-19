@@ -1,0 +1,45 @@
+{
+  "duplicates": [
+    {
+      "id": "dup-001",
+      "blocks": [
+        {
+          "id": "block-1",
+          "file": "auth.py",
+          "start_line": 1,
+          "end_line": 8,
+          "content": "def validate_email(email):\n    if not email:\n        raise ValueError(\"Email required\")\n    if '@' not in email:\n        raise ValueError(\"Invalid email format\")\n    if len(email) > 255:\n        raise ValueError(\"Email too long\")\n    return email.lower().strip()",
+          "language": "python",
+          "symbol_type": "function",
+          "symbol_name": "validate_email",
+          "metrics": {
+            "cyclomatic_complexity": 3,
+            "cognitive_complexity": 3,
+            "lines_of_code": 8,
+            "maintainability_index": 65.5,
+            "halstead_difficulty": 12.3
+          }
+        },
+        {
+          "id": "block-2",
+          "file": "user.py",
+          "start_line": 1,
+          "end_line": 8,
+          "content": "def check_email_address(email_addr):\n    if not email_addr:\n        raise Exception(\"Email is required\")\n    if '@' not in email_addr:\n        raise Exception(\"Email format is invalid\")\n    if len(email_addr) > 255:\n        raise Exception(\"Email address too long\")\n    return email_addr.lower().strip()",
+          "language": "python",
+          "symbol_type": "function",
+          "symbol_name": "check_email_address",
+          "metrics": {
+            "cyclomatic_complexity": 3,
+            "cognitive_complexity": 3,
+            "lines_of_code": 8,
+            "maintainability_index": 65.5,
+            "halstead_difficulty": 12.3
+          }
+        }
+      ],
+      "similarity": 0.92,
+      "suggested_fix": "Extract to shared utils/validator.py:validate_email()"
+    }
+  ]
+}

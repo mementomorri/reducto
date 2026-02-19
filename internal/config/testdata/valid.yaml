@@ -1,0 +1,12 @@
+models:
+  light:
+    local_model: llama3.2:3b
+    remote_model: gpt-4o-mini
+    provider: ollama
+
+sidecar:
+  port: 9876
+  startup_timeout: 30
+
+pre_approve: true
+commit_changes: true

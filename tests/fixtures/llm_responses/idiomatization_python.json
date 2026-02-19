@@ -1,0 +1,19 @@
+{
+  "session_id": "test-session-123",
+  "changes": [
+    {
+      "path": "non_idiomatic.py",
+      "original": "# Non-idiomatic list filtering\nnumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\nevens = []\nfor num in numbers:\n    if num % 2 == 0:\n        evens.append(num)",
+      "modified": "# Idiomatic list comprehension\nnumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\nevens = [num for num in numbers if num % 2 == 0]",
+      "description": "Replace for loop with list comprehension"
+    },
+    {
+      "path": "non_idiomatic.py",
+      "original": "# Non-idiomatic string formatting\nname = \"Alice\"\nage = 30\nmessage = \"Hello, \" + name + \"! You are \" + str(age) + \" years old.\"",
+      "modified": "# Idiomatic f-string\nname = \"Alice\"\nage = 30\nmessage = f\"Hello, {name}! You are {age} years old.\"",
+      "description": "Replace string concatenation with f-string"
+    }
+  ],
+  "description": "Apply Pythonic idioms to improve code readability",
+  "pattern": "idiomatize_python"
+}

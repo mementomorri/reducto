@@ -1,0 +1,29 @@
+# Test configuration for local Ollama models
+# Use this configuration when running tests locally
+
+models:
+  light:
+    local_model: gemma3:270m
+    provider: ollama
+  
+  medium:
+    local_model: codegemma:2b
+    provider: ollama
+  
+  heavy:
+    local_model: qwen2.5-coder:1.5b
+    provider: ollama
+
+sidecar:
+  port: 9876
+  startup_timeout: 30
+  auto_install: false
+
+pre_approve: true
+commit_changes: false
+report: false
+
+complexity_thresholds:
+  cyclomatic_complexity: 10
+  cognitive_complexity: 15
+  lines_of_code: 50
