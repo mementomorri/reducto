@@ -32,8 +32,10 @@ from ai_sidecar.agents import (
     ValidatorAgent,
 )
 from ai_sidecar.embeddings import EmbeddingService
+from ai_sidecar.llm import LLMRouter
 
 embedding_service: Optional[EmbeddingService] = None
+llm_router: Optional[LLMRouter] = None
 analyzer_agent: Optional[AnalyzerAgent] = None
 deduplicator_agent: Optional[DeduplicatorAgent] = None
 idiomatizer_agent: Optional[IdiomatizerAgent] = None
@@ -45,17 +47,20 @@ shutdown_event = asyncio.Event()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global embedding_service, analyzer_agent, deduplicator_agent
+    global embedding_service, llm_router, analyzer_agent, deduplicator_agent
     global idiomatizer_agent, pattern_agent, validator_agent
 
     embedding_service = EmbeddingService()
     await embedding_service.initialize()
 
-    analyzer_agent = AnalyzerAgent()
-    deduplicator_agent = DeduplicatorAgent(embedding_service)
-    idiomatizer_agent = IdiomatizerAgent()
-    pattern_agent = PatternAgent()
+    llm_router = LLMRouter()
+
+    analyzer_agent = AnalyzerAgent(llm_router=llm_router)
+    deduplicator_agent = DeduplicatorAgent(embedding_service, llm_router=llm_router)
+    idiomatizer_agent = IdiomatizerAgent(llm_router=llm_router)
+    pattern_agent = PatternAgent(llm_router=llm_router)
     validator_agent = ValidatorAgent()
+    validator_agent.set_agents(deduplicator_agent, idiomatizer_agent, pattern_agent)
 
     yield
 

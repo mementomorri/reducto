@@ -13,11 +13,13 @@ from ai_sidecar.models import (
     Symbol,
     Language,
     ComplexityMetrics,
+    ModelTier,
 )
 
 
 class AnalyzerAgent:
-    def __init__(self):
+    def __init__(self, llm_router=None):
+        self.llm = llm_router
         self._session_cache: Dict[str, Any] = {}
 
     async def analyze(self, request: AnalyzeRequest) -> AnalyzeResult:
@@ -351,3 +353,38 @@ class AnalyzerAgent:
                 nesting = max(0, nesting - 1)
 
         return complexity
+
+    async def investigate_uncommon_patterns(
+        self,
+        code: str,
+        language: Language,
+        tier: ModelTier = ModelTier.MEDIUM,
+    ) -> str:
+        """Analyze code for uncommon or non-idiomatic patterns using LLM."""
+        if not self.llm:
+            return "LLM not available for pattern investigation"
+
+        question = f"""Analyze this {language.value} code for uncommon or non-idiomatic patterns.
+
+Consider:
+1. Is this code following idiomatic {language.value} conventions?
+2. Are there better design patterns that could be applied?
+3. Is the code readable and maintainable?
+4. Are there potential bugs or issues?
+
+Provide specific recommendations for improvement."""
+
+        return await self.llm.analyze_code(code, question, tier=tier)
+
+    async def suggest_refactoring(
+        self,
+        code: str,
+        language: Language,
+        goal: str,
+        tier: ModelTier = ModelTier.MEDIUM,
+    ) -> str:
+        """Suggest refactoring for a code block using LLM."""
+        if not self.llm:
+            return "LLM not available for refactoring suggestions"
+
+        return await self.llm.suggest_refactor(code, language.value, goal, tier=tier)

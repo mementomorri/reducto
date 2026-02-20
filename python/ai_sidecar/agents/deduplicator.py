@@ -13,13 +13,15 @@ from ai_sidecar.models import (
     CodeBlock,
     Language,
     ComplexityMetrics,
+    ModelTier,
 )
 from ai_sidecar.embeddings import EmbeddingService
 
 
 class DeduplicatorAgent:
-    def __init__(self, embedding_service: EmbeddingService):
+    def __init__(self, embedding_service: EmbeddingService, llm_router=None):
         self.embedding_service = embedding_service
+        self.llm = llm_router
         self._session_plans: Dict[str, RefactorPlan] = {}
 
     async def find_duplicates(self, request: DeduplicateRequest) -> RefactorPlan:

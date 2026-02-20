@@ -10,11 +10,13 @@ from ai_sidecar.models import (
     RefactorPlan,
     FileChange,
     Language,
+    ModelTier,
 )
 
 
 class PatternAgent:
-    def __init__(self):
+    def __init__(self, llm_router=None):
+        self.llm = llm_router
         self._session_plans: Dict[str, RefactorPlan] = {}
 
     async def apply_pattern(self, request: PatternRequest) -> RefactorPlan:

@@ -3,22 +3,40 @@ Embedding service for semantic code analysis.
 """
 
 import hashlib
+import logging
 from typing import List, Dict, Optional
+
 import chromadb
 from chromadb.config import Settings
 
 from ai_sidecar.models import FileInfo, CodeBlock, Language
+
+logger = logging.getLogger(__name__)
 
 
 class EmbeddingService:
     def __init__(self):
         self.client: Optional[chromadb.Client] = None
         self.collection = None
+        self.model = None
         self._initialized = False
+        self._use_real_embeddings = False
 
     async def initialize(self):
         if self._initialized:
             return
+
+        try:
+            from sentence_transformers import SentenceTransformer
+            self.model = SentenceTransformer('all-MiniLM-L6-v2')
+            self._use_real_embeddings = True
+            logger.info("Loaded sentence-transformers model: all-MiniLM-L6-v2")
+        except ImportError:
+            logger.warning("sentence-transformers not available, using mock embeddings")
+            self._use_real_embeddings = False
+        except Exception as e:
+            logger.warning(f"Failed to load sentence-transformers: {e}, using mock embeddings")
+            self._use_real_embeddings = False
 
         self.client = chromadb.Client(Settings(
             chroma_db_impl="duckdb+parquet",
@@ -36,7 +54,9 @@ class EmbeddingService:
         if self.client:
             self.client = None
             self.collection = None
+            self.model = None
             self._initialized = False
+            self._use_real_embeddings = False
 
     def _mock_embedding(self, text: str) -> List[float]:
         h = hashlib.sha256(text.encode()).hexdigest()
@@ -47,17 +67,37 @@ class EmbeddingService:
         return embedding[:384]
 
     async def embed_text(self, text: str) -> List[float]:
-        return self._mock_embedding(text)
+        if self._use_real_embeddings and self.model:
+            embedding = self.model.encode(text, convert_to_numpy=True)
+            return embedding.tolist()
+        else:
+            return self._mock_embedding(text)
+
+    async def embed_batch(self, texts: List[str]) -> List[List[float]]:
+        if self._use_real_embeddings and self.model:
+            embeddings = self.model.encode(texts, convert_to_numpy=True)
+            return embeddings.tolist()
+        else:
+            return [self._mock_embedding(t) for t in texts]
 
     async def embed_files(self, files: List[FileInfo]) -> Dict[str, List[float]]:
-        result = {}
-        for file in files:
-            result[file.path] = await self.embed_text(file.content)
-        return result
+        if not files:
+            return {}
+        
+        texts = [f.content for f in files]
+        embeddings = await self.embed_batch(texts)
+        return {f.path: emb for f, emb in zip(files, embeddings)}
 
     async def embed_blocks(self, blocks: List[CodeBlock]) -> List[CodeBlock]:
-        for block in blocks:
-            block.embedding = await self.embed_text(block.content)
+        if not blocks:
+            return blocks
+        
+        texts = [block.content for block in blocks]
+        embeddings = await self.embed_batch(texts)
+        
+        for block, embedding in zip(blocks, embeddings):
+            block.embedding = embedding
+        
         return blocks
 
     async def store_embeddings(self, blocks: List[CodeBlock]):
@@ -163,3 +203,7 @@ class EmbeddingService:
                 name="code_embeddings",
                 metadata={"hnsw:space": "cosine"}
             )
+
+    @property
+    def is_using_real_embeddings(self) -> bool:
+        return self._use_real_embeddings

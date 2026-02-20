@@ -10,11 +10,13 @@ from ai_sidecar.models import (
     RefactorPlan,
     FileChange,
     Language,
+    ModelTier,
 )
 
 
 class IdiomatizerAgent:
-    def __init__(self):
+    def __init__(self, llm_router=None):
+        self.llm = llm_router
         self._session_plans: Dict[str, RefactorPlan] = {}
 
     async def idiomatize(self, request: IdiomatizeRequest) -> RefactorPlan:
@@ -174,3 +176,16 @@ class IdiomatizerAgent:
 
     def get_plan(self, session_id: str) -> Optional[RefactorPlan]:
         return self._session_plans.get(session_id)
+
+    async def suggest_idiomatic_version(
+        self,
+        code: str,
+        language: Language,
+        tier: ModelTier = ModelTier.MEDIUM,
+    ) -> str:
+        """Use LLM to suggest idiomatic version of code."""
+        if not self.llm:
+            return "LLM not available for idiomatization"
+
+        goal = f"Transform this code to be more idiomatic {language.value}"
+        return await self.llm.suggest_refactor(code, language.value, goal, tier=tier)
