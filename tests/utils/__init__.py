@@ -1,1 +1,1 @@
-"""Test utilities for DeHydrator test suite."""
+"""Test utilities for dehydrator test suite."""

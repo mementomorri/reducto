@@ -21,7 +21,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "dehydrate",
 	Short: "Semantic Code Compression Engine",
-	Long: `DeHydrator is an autonomous code compression utility that optimizes 
+	Long: `dehydrator is an autonomous code compression utility that optimizes 
 and compresses codebases while maintaining 100% functional parity.
 
 It identifies repeating patterns, suggests idiomatic improvements, 
@@ -377,7 +377,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the version number",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("DeHydrator v0.1.0")
+		fmt.Println("dehydrator v0.1.0")
 	},
 }
 

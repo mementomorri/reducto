@@ -109,7 +109,7 @@ func (m *Manager) CreateCheckpoint(message string) error {
 
 	_, err = wt.Commit(message, &git.CommitOptions{
 		Author: &object.Signature{
-			Name:  "DeHydrator",
+			Name:  "dehydrator",
 			Email: "dehydrator@local",
 		},
 	})
@@ -139,7 +139,7 @@ func (m *Manager) Commit(message string, changes []models.FileChange) error {
 
 	_, err = wt.Commit(message, &git.CommitOptions{
 		Author: &object.Signature{
-			Name:  "DeHydrator",
+			Name:  "dehydrator",
 			Email: "dehydrator@local",
 		},
 	})
@@ -214,7 +214,7 @@ func (m *Manager) Stash() error {
 
 	_, err = wt.Commit("WIP: stash before dehydrate", &git.CommitOptions{
 		Author: &object.Signature{
-			Name:  "DeHydrator",
+			Name:  "dehydrator",
 			Email: "dehydrator@local",
 		},
 	})

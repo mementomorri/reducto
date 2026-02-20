@@ -1,5 +1,5 @@
 """
-Custom test assertions for DeHydrator test suite.
+Custom test assertions for dehydrator test suite.
 """
 
 import json

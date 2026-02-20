@@ -1,4 +1,4 @@
-# DeHydrator
+# dehydrator
 
 **Semantic Code Compression Engine**
 

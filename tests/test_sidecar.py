@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import requests
 
-app = FastAPI(title="DeHydrator Test Sidecar")
+app = FastAPI(title="dehydrator Test Sidecar")
 
 # Mock embedding service
 class MockEmbeddingService:
