@@ -1,7 +1,7 @@
-# dehydrator Test Suite - Implementation Summary
+# reducto Test Suite - Implementation Summary
 
 ## Overview
-Comprehensive test infrastructure has been implemented for the dehydrator project, covering unit tests, integration tests, and E2E tests as specified in TEST_RULES.md.
+Comprehensive test infrastructure has been implemented for the reducto project, covering unit tests, integration tests, and E2E tests as specified in TEST_RULES.md.
 
 ## Test Structure
 
@@ -141,14 +141,14 @@ pytest python/tests/ -v
 pytest tests/integration/ -v -m integration
 
 # Run E2E tests
-PYTHONPATH=/home/alexkarsten/Projects/dehydrator pytest tests/e2e/ -v
+pytest tests/e2e/ -v
 ```
 
 ### All Tests
 ```bash
 # Run everything
 go test -v ./internal/...
-PYTHONPATH=/home/alexkarsten/Projects/dehydrator pytest tests/ python/tests/ -v
+pytest tests/ python/tests/ -v
 ```
 
 ## Test Results Summary
@@ -224,4 +224,4 @@ A comprehensive test suite has been successfully implemented covering all requir
 - Be maintainable and extensible
 - Provide meaningful feedback on code quality
 
-All core functionality is tested, with the test suite ready for expansion as new features are added to dehydrator.
+All core functionality is tested, with the test suite ready for expansion as new features are added to reducto.

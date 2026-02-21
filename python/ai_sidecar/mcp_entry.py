@@ -171,7 +171,7 @@ class MCPSidecar:
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="dehydrator AI Sidecar (MCP mode)")
+    parser = argparse.ArgumentParser(description="reducto AI Sidecar (MCP mode)")
     parser.add_argument("--root", default=".", help="Root directory")
     parser.add_argument("--command", default="analyze", help="Command to execute")
     args = parser.parse_args()

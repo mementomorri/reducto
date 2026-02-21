@@ -1,5 +1,5 @@
 """
-Custom test assertions for dehydrator test suite.
+Custom test assertions for reducto test suite.
 """
 
 import json

@@ -68,7 +68,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="dehydrator AI Sidecar",
+    title="reducto AI Sidecar",
     description="AI-powered code analysis and refactoring service",
     version="0.1.0",
     lifespan=lifespan,
@@ -161,7 +161,7 @@ def run_server(port: int = 9876):
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="dehydrator AI Sidecar")
+    parser = argparse.ArgumentParser(description="reducto AI Sidecar")
     parser.add_argument("--port", type=int, default=9876, help="Port to listen on")
     args = parser.parse_args()
 
