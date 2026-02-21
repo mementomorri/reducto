@@ -76,5 +76,5 @@ Following the principles of Test-Driven Development (TDD) for the Semantic Compr
 
 ### Test Case: CLI Flow Continuity
 
-**Scenario**: Navigate to a project folder and run dehydrate --deduplicate.
+**Scenario**: Navigate to a project folder and run reducto --deduplicate.
 **Expectation**: The application must successfully complete the loop: Scan -> Propose Plan -> User approves (skip if flag set to pre-approve) -> Edit In-Place -> Run Tests -> Commit to Git (Optional).

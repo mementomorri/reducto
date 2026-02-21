@@ -19,9 +19,10 @@ from ai_sidecar.embeddings import EmbeddingService
 
 
 class DeduplicatorAgent:
-    def __init__(self, embedding_service: EmbeddingService, llm_router=None):
+    def __init__(self, embedding_service: EmbeddingService, llm_router=None, mcp_client=None):
         self.embedding_service = embedding_service
         self.llm = llm_router
+        self.mcp = mcp_client
         self._session_plans: Dict[str, RefactorPlan] = {}
 
     async def find_duplicates(self, request: DeduplicateRequest) -> RefactorPlan:

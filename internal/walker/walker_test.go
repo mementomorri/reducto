@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/alexkarsten/dehydrate/pkg/models"
+	"github.com/alexkarsten/reducto/pkg/models"
 )
 
 func TestWalk(t *testing.T) {

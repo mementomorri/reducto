@@ -1,11 +1,17 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 
-	"github.com/alexkarsten/dehydrate/pkg/models"
+	"github.com/alexkarsten/reducto/pkg/models"
+)
+
+var (
+	ErrUnsupportedLanguage = errors.New("unsupported language")
+	ErrParseFailed         = errors.New("failed to parse content")
 )
 
 type Parser struct{}

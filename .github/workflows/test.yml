@@ -134,7 +134,7 @@ jobs:
           pip install -r python/requirements-test.txt
       
       - name: Build CLI
-        run: go build -o dehydrate ./cmd/dehydrate
+        run: go build -o reducto ./cmd/reducto
       
       - name: Start Python sidecar
         run: |
@@ -219,12 +219,12 @@ jobs:
       
       - name: Build binary
         run: |
-          go build -o dehydrate ./cmd/dehydrate
-          ./dehydrate --help || echo "Binary built successfully"
+          go build -o reducto ./cmd/reducto
+          ./reducto --help || echo "Binary built successfully"
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dehydrate-binary
-          path: dehydrate
+          name: reducto-binary
+          path: reducto
           retention-days: 5

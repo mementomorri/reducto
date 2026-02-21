@@ -1,6 +1,7 @@
 package walker
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -8,8 +9,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
-	"github.com/alexkarsten/dehydrate/pkg/models"
+	"github.com/alexkarsten/reducto/pkg/models"
+	"golang.org/x/sync/errgroup"
 )
 
 type Walker struct {
@@ -25,7 +28,7 @@ func New(excludePatterns, includePatterns []string) *Walker {
 }
 
 func (w *Walker) Walk(root string) ([]models.FileInfo, error) {
-	var files []models.FileInfo
+	var filePaths []string
 
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -47,29 +50,56 @@ func (w *Walker) Walk(root string) ([]models.FileInfo, error) {
 			return nil
 		}
 
-		content, err := os.ReadFile(path)
-		if err != nil {
-			return fmt.Errorf("failed to read file %s: %w", path, err)
-		}
-
-		relPath, err := filepath.Rel(root, path)
-		if err != nil {
-			relPath = path
-		}
-
-		hash := sha256.Sum256(content)
-
-		files = append(files, models.FileInfo{
-			Path:    relPath,
-			Content: string(content),
-			Hash:    hex.EncodeToString(hash[:]),
-		})
-
+		filePaths = append(filePaths, path)
 		return nil
 	})
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to walk directory: %w", err)
+	}
+
+	var files []models.FileInfo
+	var mu sync.Mutex
+
+	g, ctx := errgroup.WithContext(context.Background())
+	g.SetLimit(32)
+
+	for _, path := range filePaths {
+		path := path
+
+		g.Go(func() error {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+			}
+
+			content, err := os.ReadFile(path)
+			if err != nil {
+				return fmt.Errorf("failed to read file %s: %w", path, err)
+			}
+
+			relPath, err := filepath.Rel(root, path)
+			if err != nil {
+				relPath = path
+			}
+
+			hash := sha256.Sum256(content)
+
+			mu.Lock()
+			files = append(files, models.FileInfo{
+				Path:    relPath,
+				Content: string(content),
+				Hash:    hex.EncodeToString(hash[:]),
+			})
+			mu.Unlock()
+
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return nil, fmt.Errorf("failed to read files: %w", err)
 	}
 
 	return files, nil

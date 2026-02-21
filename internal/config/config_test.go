@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/alexkarsten/dehydrate/pkg/models"
+	"github.com/alexkarsten/reducto/pkg/models"
 )
 
 func TestDefaultConfig(t *testing.T) {
@@ -149,7 +149,7 @@ func TestSaveEmptyPath(t *testing.T) {
 		t.Errorf("Save with empty path should not error: %v", err)
 	}
 
-	expectedPath := filepath.Join(tmpHome, ".dehydrate.yaml")
+	expectedPath := filepath.Join(tmpHome, ".reducto.yaml")
 	if _, err := os.Stat(expectedPath); os.IsNotExist(err) {
 		t.Errorf("Config file should be created at %s", expectedPath)
 	}

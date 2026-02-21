@@ -4,24 +4,24 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/alexkarsten/dehydrate/internal/config"
-	"github.com/alexkarsten/dehydrate/internal/git"
-	"github.com/alexkarsten/dehydrate/internal/reporter"
-	"github.com/alexkarsten/dehydrate/internal/sidecar"
-	"github.com/alexkarsten/dehydrate/pkg/models"
+	"github.com/alexkarsten/reducto/internal/config"
+	"github.com/alexkarsten/reducto/internal/git"
+	"github.com/alexkarsten/reducto/internal/reporter"
+	"github.com/alexkarsten/reducto/internal/sidecar"
+	"github.com/alexkarsten/reducto/pkg/models"
 	"github.com/spf13/cobra"
 )
 
 var (
 	cfgFile    string
 	cfg        *models.Config
-	sidecarSvc *sidecar.Manager
+	mcpManager *sidecar.MCPManager
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "dehydrate",
+	Use:   "reducto",
 	Short: "Semantic Code Compression Engine",
-	Long: `dehydrator is an autonomous code compression utility that optimizes 
+	Long: `reducto is an autonomous code compression utility that optimizes 
 and compresses codebases while maintaining 100% functional parity.
 
 It identifies repeating patterns, suggests idiomatic improvements, 
@@ -33,24 +33,12 @@ and applies design patterns to reduce cognitive load.`,
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
-		if cmd.Name() != "version" && cmd.Name() != "help" {
-			sidecarSvc = sidecar.NewManager(cfg)
-			if err := sidecarSvc.Start(); err != nil {
-				return fmt.Errorf("failed to start AI sidecar: %w", err)
-			}
-		}
-
 		return nil
-	},
-	PersistentPostRun: func(cmd *cobra.Command, args []string) {
-		if sidecarSvc != nil {
-			sidecarSvc.Stop()
-		}
 	},
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.dehydrate.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.reducto.yaml)")
 }
 
 func Execute() {
@@ -94,8 +82,8 @@ func runAnalyze(path string) error {
 		return err
 	}
 
-	client := sidecarSvc.Client()
-	result, err := client.Analyze(path)
+	mcpManager = sidecar.NewMCPManager(path, cfg)
+	result, err := mcpManager.Analyze(path)
 	if err != nil {
 		return fmt.Errorf("analysis failed: %w", err)
 	}
@@ -104,22 +92,11 @@ func runAnalyze(path string) error {
 	fmt.Printf("Total files: %d\n", result.TotalFiles)
 	fmt.Printf("Total symbols: %d\n", result.TotalSymbols)
 	fmt.Printf("Complexity hotspots: %d\n", len(result.Hotspots))
-	fmt.Printf("Potential duplicates: %d\n", len(result.Duplicates))
 
 	if len(result.Hotspots) > 0 {
 		fmt.Printf("\n--- Complexity Hotspots ---\n")
 		for _, hs := range result.Hotspots {
 			fmt.Printf("  %s:%d - %s (CC: %d)\n", hs.File, hs.Line, hs.Symbol, hs.CyclomaticComplexity)
-		}
-	}
-
-	if len(result.Duplicates) > 0 {
-		fmt.Printf("\n--- Potential Duplicates ---\n")
-		for _, dup := range result.Duplicates {
-			fmt.Printf("  Similarity: %.2f%%\n", dup.Similarity*100)
-			for _, block := range dup.Blocks {
-				fmt.Printf("    - %s:%d-%d\n", block.File, block.StartLine, block.EndLine)
-			}
 		}
 	}
 
@@ -133,19 +110,14 @@ func runDeduplicate(path string, commitChanges bool) error {
 		return err
 	}
 
-	client := sidecarSvc.Client()
-	plan, err := client.Deduplicate(path)
+	mcpManager = sidecar.NewMCPManager(path, cfg)
+	plan, err := mcpManager.Deduplicate(path)
 	if err != nil {
 		return fmt.Errorf("deduplication planning failed: %w", err)
 	}
 
 	fmt.Printf("\n=== Refactoring Plan ===\n")
 	fmt.Printf("%s\n", plan.Description)
-	fmt.Printf("\nChanges to be made:\n")
-	for i, change := range plan.Changes {
-		fmt.Printf("\n%d. %s\n", i+1, change.Path)
-		fmt.Printf("   %s\n", change.Description)
-	}
 
 	if !cfg.PreApprove {
 		fmt.Printf("\nApply these changes? [y/N]: ")
@@ -156,42 +128,7 @@ func runDeduplicate(path string, commitChanges bool) error {
 		}
 	}
 
-	result, err := client.ApplyPlan(plan.SessionID)
-	if err != nil {
-		return fmt.Errorf("failed to apply changes: %w", err)
-	}
-
-	if !result.TestsPassed {
-		fmt.Println("\nWarning: Tests failed after refactoring!")
-		fmt.Println("Rolling back changes...")
-
-		gitMgr := git.NewManager(path)
-		if err := gitMgr.Rollback(); err != nil {
-			return fmt.Errorf("rollback failed: %w", err)
-		}
-
-		return fmt.Errorf("refactoring aborted due to test failures")
-	}
-
-	fmt.Println("\nRefactoring completed successfully!")
-	fmt.Printf("LOC reduced: %d\n", result.MetricsBefore.LinesOfCode-result.MetricsAfter.LinesOfCode)
-
-	if commitChanges {
-		gitMgr := git.NewManager(path)
-		if err := gitMgr.Commit("refactor: deduplicate code", result.Changes); err != nil {
-			return fmt.Errorf("failed to commit changes: %w", err)
-		}
-		fmt.Println("Changes committed to git.")
-	}
-
-	if cfg.Report {
-		rep := reporter.New(cfg)
-		if err := rep.Generate(result); err != nil {
-			return fmt.Errorf("failed to generate report: %w", err)
-		}
-		fmt.Println("Report generated: dehydrate-report.md")
-	}
-
+	fmt.Println("\nDeduplication plan generated. Apply functionality coming soon.")
 	return nil
 }
 
@@ -202,19 +139,14 @@ func runIdiomatize(path string) error {
 		return err
 	}
 
-	client := sidecarSvc.Client()
-	plan, err := client.Idiomatize(path)
+	mcpManager = sidecar.NewMCPManager(path, cfg)
+	plan, err := mcpManager.Idiomatize(path)
 	if err != nil {
 		return fmt.Errorf("idiomatization planning failed: %w", err)
 	}
 
 	fmt.Printf("\n=== Idiomatization Plan ===\n")
 	fmt.Printf("%s\n", plan.Description)
-	fmt.Printf("\nChanges to be made:\n")
-	for i, change := range plan.Changes {
-		fmt.Printf("\n%d. %s\n", i+1, change.Path)
-		fmt.Printf("   %s\n", change.Description)
-	}
 
 	if !cfg.PreApprove {
 		fmt.Printf("\nApply these changes? [y/N]: ")
@@ -225,12 +157,7 @@ func runIdiomatize(path string) error {
 		}
 	}
 
-	_, err = client.ApplyPlan(plan.SessionID)
-	if err != nil {
-		return fmt.Errorf("failed to apply changes: %w", err)
-	}
-
-	fmt.Println("\nIdiomatization completed successfully!")
+	fmt.Println("\nIdiomatization plan generated. Apply functionality coming soon.")
 	return nil
 }
 
@@ -242,8 +169,8 @@ func runPattern(pattern, path string) error {
 		return err
 	}
 
-	client := sidecarSvc.Client()
-	plan, err := client.ApplyPattern(pattern, path)
+	mcpManager = sidecar.NewMCPManager(path, cfg)
+	plan, err := mcpManager.ApplyPattern(pattern, path)
 	if err != nil {
 		return fmt.Errorf("pattern injection failed: %w", err)
 	}
@@ -251,11 +178,6 @@ func runPattern(pattern, path string) error {
 	fmt.Printf("\n=== Pattern Injection Plan ===\n")
 	fmt.Printf("Pattern: %s\n", plan.Pattern)
 	fmt.Printf("%s\n", plan.Description)
-	fmt.Printf("\nChanges to be made:\n")
-	for i, change := range plan.Changes {
-		fmt.Printf("\n%d. %s\n", i+1, change.Path)
-		fmt.Printf("   %s\n", change.Description)
-	}
 
 	if !cfg.PreApprove {
 		fmt.Printf("\nApply these changes? [y/N]: ")
@@ -266,12 +188,7 @@ func runPattern(pattern, path string) error {
 		}
 	}
 
-	_, err = client.ApplyPlan(plan.SessionID)
-	if err != nil {
-		return fmt.Errorf("failed to apply changes: %w", err)
-	}
-
-	fmt.Println("\nPattern injection completed successfully!")
+	fmt.Println("\nPattern injection plan generated. Apply functionality coming soon.")
 	return nil
 }
 
@@ -377,7 +294,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the version number",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("dehydrator v0.1.0")
+		fmt.Println("reducto v0.1.0")
 	},
 }
 

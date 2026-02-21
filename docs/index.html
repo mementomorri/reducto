@@ -465,7 +465,7 @@
                     <a href="#features">Features</a>
                     <a href="#how-it-works">How It Works</a>
                     <a href="#installation">Installation</a>
-                    <a href="https://github.com/alexkarsten/dehydrate">GitHub</a>
+                    <a href="https://github.com/alexkarsten/reducto">GitHub</a>
                 </nav>
             </div>
         </div>
@@ -479,7 +479,7 @@
                 <p class="subtitle">Autonomously refactor codebases to reduce complexity and eliminate duplication while maintaining 100% functional parity.</p>
                 <div class="cta-buttons">
                     <a href="#installation" class="btn btn-primary">Get Started</a>
-                    <a href="https://github.com/alexkarsten/dehydrate" class="btn btn-secondary">View on GitHub</a>
+                    <a href="https://github.com/alexkarsten/reducto" class="btn btn-secondary">View on GitHub</a>
                 </div>
             </div>
         </section>
@@ -556,25 +556,25 @@
                         </h3>
                         <p style="color: var(--text-secondary); margin-bottom: 16px;">Download the latest release for your platform:</p>
                         <pre><code class="code-comment"># Download from GitHub Releases</code>
-<span class="code-command">curl -sSL https://github.com/alexkarsten/dehydrate/releases/latest/download/dehydrate-linux-amd64 -o dehydrate</span>
-<span class="code-command">chmod +x dehydrate</span>
-<span class="code-command">sudo mv dehydrate /usr/local/bin/</span></code></pre>
+<span class="code-command">curl -sSL https://github.com/alexkarsten/reducto/releases/latest/download/reducto-linux-amd64 -o reducto</span>
+<span class="code-command">chmod +x reducto</span>
+<span class="code-command">sudo mv reducto /usr/local/bin/</span></code></pre>
                         <p style="margin-top: 16px;">
-                            <a href="https://github.com/alexkarsten/dehydrate/releases">View all releases →</a>
+                            <a href="https://github.com/alexkarsten/reducto/releases">View all releases →</a>
                         </p>
                     </div>
                     <div class="install-card">
                         <h3>🔧 Build from Source</h3>
                         <p style="color: var(--text-secondary); margin-bottom: 16px;">Requires Go 1.21+ and Python 3.10+:</p>
                         <pre><code class="code-comment"># Clone the repository</code>
-<span class="code-command">git clone https://github.com/alexkarsten/dehydrate.git</span>
-<span class="code-command">cd dehydrate</span>
+<span class="code-command">git clone https://github.com/alexkarsten/reducto.git</span>
+<span class="code-command">cd reducto</span>
 
 <span class="code-comment"># Install Python dependencies</span>
 <span class="code-command">pip install -r python/requirements.txt</span>
 
 <span class="code-comment"># Build the binary</span>
-<span class="code-command">go build -o dehydrate ./cmd/dehydrate</span></code></pre>
+<span class="code-command">go build -o reducto ./cmd/reducto</span></code></pre>
                     </div>
                 </div>
             </div>
@@ -590,7 +590,7 @@
                         <div class="terminal-dot green"></div>
                     </div>
                     <div class="terminal-body">
-                        <p><span class="terminal-prompt">$</span> dehydrate analyze .</p>
+                        <p><span class="terminal-prompt">$</span> reducto analyze .</p>
                         <p class="code-output">Analyzing repository: /home/user/my-project</p>
                         <br>
                         <p class="code-output">=== Analysis Results ===</p>
@@ -608,7 +608,7 @@
                         <p class="code-output">    - src/auth/validator.py:23-45</p>
                         <p class="code-output">    - src/api/validator.py:12-34</p>
                         <br>
-                        <p><span class="terminal-prompt">$</span> dehydrate deduplicate --commit .</p>
+                        <p><span class="terminal-prompt">$</span> reducto deduplicate --commit .</p>
                         <p class="code-output">Running deduplication...</p>
                         <p class="code-output">Refactoring completed successfully!</p>
                         <p class="code-output">LOC reduced: 127</p>
@@ -648,9 +648,9 @@
     <footer>
         <div class="container">
             <div class="footer-links">
-                <a href="https://github.com/alexkarsten/dehydrate">GitHub</a>
-                <a href="https://github.com/alexkarsten/dehydrate/blob/main/LICENSE">MIT License</a>
-                <a href="https://github.com/alexkarsten/dehydrate/issues">Report Issue</a>
+                <a href="https://github.com/alexkarsten/reducto">GitHub</a>
+                <a href="https://github.com/alexkarsten/reducto/blob/main/LICENSE">MIT License</a>
+                <a href="https://github.com/alexkarsten/reducto/issues">Report Issue</a>
             </div>
             <p class="footer-copyright">© 2026 Alex Karsten. Released under the MIT License.</p>
         </div>

@@ -18,8 +18,9 @@ from ai_sidecar.models import (
 
 
 class AnalyzerAgent:
-    def __init__(self, llm_router=None):
+    def __init__(self, llm_router=None, mcp_client=None):
         self.llm = llm_router
+        self.mcp = mcp_client
         self._session_cache: Dict[str, Any] = {}
 
     async def analyze(self, request: AnalyzeRequest) -> AnalyzeResult:
@@ -41,6 +42,22 @@ class AnalyzerAgent:
         )
 
     async def _scan_directory(self, path: str):
+        if self.mcp:
+            return await self._scan_directory_mcp(path)
+        return await self._scan_directory_local(path)
+
+    async def _scan_directory_mcp(self, path: str):
+        result = await self.mcp.list_files()
+        files = []
+        for f in result.get("files", []):
+            file_data = await self.mcp.read_file(f["path"])
+            files.append({
+                "path": f["path"],
+                "content": file_data.get("content", ""),
+            })
+        return files
+
+    async def _scan_directory_local(self, path: str):
         files = []
         exclude_dirs = {".git", "node_modules", "venv", "__pycache__", "vendor", "dist", "build"}
 
@@ -77,8 +94,20 @@ class AnalyzerAgent:
             path = file["path"]
             language = self._detect_language(path)
 
-            file_symbols = await self._parse_symbols(content, path, language)
-            symbols.extend(file_symbols)
+            if self.mcp and not content:
+                result = await self.mcp.get_symbols(path)
+                for s in result.get("symbols", []):
+                    symbols.append(Symbol(
+                        name=s.get("name", ""),
+                        type=s.get("type", ""),
+                        file=path,
+                        start_line=s.get("start_line", 0),
+                        end_line=s.get("end_line", 0),
+                        signature=s.get("signature"),
+                    ))
+            else:
+                file_symbols = await self._parse_symbols(content, path, language)
+                symbols.extend(file_symbols)
 
         return symbols
 

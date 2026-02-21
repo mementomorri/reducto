@@ -53,3 +53,62 @@ To ensure the two languages work seamlessly, the application uses the Model Cont
 - **Report Generation:** Go compiles the final metrics (LOC reduction, complexity delta) into a performance-optimized report using its standard library's fast template execution.
 
 By using Go for the "Body" (I/O, parsing, distribution) and Python for the "Brain" (reasoning, model interaction), the project delivers a professional-grade tool that is both incredibly fast and intellectually capable.
+
+---
+
+## 5. Implementation Notes
+
+This section documents implementation decisions and deviations from the specification.
+
+### 5.1 Parser Implementation
+
+**Spec:** Tree-sitter for AST parsing  
+**Implementation:** Regex-based parser with Tree-sitter fallback (currently using regex due to API compatibility)
+
+The Tree-sitter bindings are included but the current version uses a regex-based parser as the primary implementation. The `internal/parser/ts_parser.go` file wraps the regex parser for now. Tree-sitter can be re-enabled once the Go bindings API stabilizes.
+
+### 5.2 LSP Integration
+
+**Status:** Complete
+
+LSP (Language Server Protocol) integration is implemented in `internal/lsp/`:
+- **manager.go**: LSP manager interface for coordinating multiple language clients
+- **protocol.go**: Base client with JSON-RPC over STDIO communication
+- **go.go**: gopls client for Go
+- **python.go**: pyright/pylsp client for Python
+- **typescript.go**: typescript-language-server client for TypeScript/JavaScript
+
+The `find_references` MCP tool now uses LSP to find all references to a symbol across the codebase. LSP clients are lazily initialized when needed.
+
+### 5.3 Communication Flow
+
+**Spec:** MCP over STDIO  
+**Implementation:** Verified
+
+The implementation follows the spec exactly:
+- Go spawns Python as a child process
+- Go acts as MCP Server on piped stdin/stdout
+- Python acts as MCP Client calling Go tools
+- Results returned via stderr with `RESULT:` prefix
+
+### 5.4 Embedding Service
+
+**Status:** Complete
+
+Uses `sentence-transformers` with `all-MiniLM-L6-v2` model. Falls back to mock embeddings if model unavailable. Integrated with ChromaDB for vector storage.
+
+### 5.5 LLM Router
+
+**Status:** Complete
+
+Uses LiteLLM for unified model access. Supports local (Ollama) and remote (Anthropic, OpenAI) providers. Configuration via environment variables.
+
+### 5.6 Session State
+
+**Implementation:** In-memory in Python
+
+Session state (refactoring plans, etc.) is stored in-memory in Python. This is ephemeral and lost when the sidecar process exits. For persistent sessions, consider adding a state serialization layer.
+
+### 5.7 Error Handling
+
+The implementation uses standard JSON-RPC 2.0 error codes plus custom codes in the `-32xxx` range for domain-specific errors (file not found, parse failure, test failure, git conflict).

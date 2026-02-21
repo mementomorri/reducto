@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alexkarsten/dehydrate/pkg/models"
+	"github.com/alexkarsten/reducto/pkg/models"
 )
 
 type Reporter struct {
@@ -18,7 +18,7 @@ type Reporter struct {
 func New(cfg *models.Config) *Reporter {
 	return &Reporter{
 		cfg:       cfg,
-		outputDir: ".dehydrate",
+		outputDir: ".reducto",
 	}
 }
 
@@ -43,7 +43,7 @@ func (r *Reporter) Generate(result *models.RefactorResult) error {
 
 	content := r.formatMarkdown(report, result)
 
-	filename := fmt.Sprintf("dehydrate-report-%s.md", result.SessionID)
+	filename := fmt.Sprintf("reducto-report-%s.md", result.SessionID)
 	path := filepath.Join(r.outputDir, filename)
 
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
@@ -64,7 +64,7 @@ func (r *Reporter) Load(sessionID string) error {
 		var latest string
 		var latestTime time.Time
 		for _, entry := range entries {
-			if strings.HasPrefix(entry.Name(), "dehydrate-report-") && strings.HasSuffix(entry.Name(), ".md") {
+			if strings.HasPrefix(entry.Name(), "reducto-report-") && strings.HasSuffix(entry.Name(), ".md") {
 				info, err := entry.Info()
 				if err != nil {
 					continue
@@ -80,11 +80,11 @@ func (r *Reporter) Load(sessionID string) error {
 			return fmt.Errorf("no reports found")
 		}
 
-		sessionID = strings.TrimPrefix(latest, "dehydrate-report-")
+		sessionID = strings.TrimPrefix(latest, "reducto-report-")
 		sessionID = strings.TrimSuffix(sessionID, ".md")
 	}
 
-	path := filepath.Join(r.outputDir, fmt.Sprintf("dehydrate-report-%s.md", sessionID))
+	path := filepath.Join(r.outputDir, fmt.Sprintf("reducto-report-%s.md", sessionID))
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to read report: %w", err)
@@ -97,7 +97,7 @@ func (r *Reporter) Load(sessionID string) error {
 func (r *Reporter) formatMarkdown(report *models.Report, result *models.RefactorResult) string {
 	var sb strings.Builder
 
-	sb.WriteString("# dehydrator Compression Report\n\n")
+	sb.WriteString("# reducto Compression Report\n\n")
 	sb.WriteString(fmt.Sprintf("**Session ID:** %s\n\n", report.SessionID))
 	sb.WriteString(fmt.Sprintf("**Generated:** %s\n\n", report.GeneratedAt.Format(time.RFC3339)))
 

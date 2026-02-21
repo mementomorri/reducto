@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/alexkarsten/dehydrate/pkg/models"
+	"github.com/alexkarsten/reducto/pkg/models"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -109,8 +109,8 @@ func (m *Manager) CreateCheckpoint(message string) error {
 
 	_, err = wt.Commit(message, &git.CommitOptions{
 		Author: &object.Signature{
-			Name:  "dehydrator",
-			Email: "dehydrator@local",
+			Name:  "reducto",
+			Email: "reducto@local",
 		},
 	})
 	if err != nil {
@@ -139,8 +139,8 @@ func (m *Manager) Commit(message string, changes []models.FileChange) error {
 
 	_, err = wt.Commit(message, &git.CommitOptions{
 		Author: &object.Signature{
-			Name:  "dehydrator",
-			Email: "dehydrator@local",
+			Name:  "reducto",
+			Email: "reducto@local",
 		},
 	})
 	if err != nil {
@@ -212,10 +212,10 @@ func (m *Manager) Stash() error {
 		}
 	}
 
-	_, err = wt.Commit("WIP: stash before dehydrate", &git.CommitOptions{
+	_, err = wt.Commit("WIP: stash before reducto", &git.CommitOptions{
 		Author: &object.Signature{
-			Name:  "dehydrator",
-			Email: "dehydrator@local",
+			Name:  "reducto",
+			Email: "reducto@local",
 		},
 	})
 	if err != nil {

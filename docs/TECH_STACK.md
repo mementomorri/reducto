@@ -12,7 +12,7 @@ The project follows a **Go CLI + Python Sidecar Service** pattern:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Go CLI (dehydrate)                        │
+│                    Go CLI (reducto)                        │
 │                                                              │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐ │
 │  │ Cobra    │  │ Config   │  │ go-git   │  │ go-tree-sitter│ │
@@ -205,7 +205,7 @@ All requests/responses use JSON:
 
 ```bash
 # Build Go CLI
-go build -o dehydrate ./cmd/dehydrate
+go build -o reducto ./cmd/reducto
 
 # Install Python dependencies (automatic on first run, or manual)
 pip install -r requirements.txt
@@ -220,9 +220,9 @@ pip install -r requirements.txt
 ## 5. Project Structure
 
 ```
-dehydrate/
+reducto/
 ├── cmd/
-│   └── dehydrate/           # CLI entrypoint
+│   └── reducto/           # CLI entrypoint
 │       └── main.go
 ├── internal/
 │   ├── cli/                 # Cobra commands

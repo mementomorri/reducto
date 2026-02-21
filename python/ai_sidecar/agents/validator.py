@@ -19,7 +19,8 @@ from ai_sidecar.agents.pattern import PatternAgent
 
 
 class ValidatorAgent:
-    def __init__(self):
+    def __init__(self, mcp_client=None):
+        self.mcp = mcp_client
         self._deduplicator: Optional[DeduplicatorAgent] = None
         self._idiomatizer: Optional[IdiomatizerAgent] = None
         self._pattern: Optional[PatternAgent] = None
@@ -34,8 +35,9 @@ class ValidatorAgent:
         self._idiomatizer = idiomatizer
         self._pattern = pattern
 
-    async def apply_plan(self, session_id: str) -> RefactorResult:
-        plan = self._find_plan(session_id)
+    async def apply_plan(self, session_id: str, plan: RefactorPlan = None) -> RefactorResult:
+        if plan is None:
+            plan = self._find_plan(session_id)
         if not plan:
             return RefactorResult(
                 session_id=session_id,
@@ -126,6 +128,13 @@ class ValidatorAgent:
             return False
 
     async def _run_tests(self) -> bool:
+        if self.mcp:
+            try:
+                result = await self.mcp.run_tests()
+                return result.get("success", False)
+            except Exception:
+                pass
+
         test_commands = [
             ["python", "-m", "pytest", "-x", "-q"],
             ["python", "-m", "unittest", "discover", "-v"],

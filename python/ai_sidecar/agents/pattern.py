@@ -15,8 +15,9 @@ from ai_sidecar.models import (
 
 
 class PatternAgent:
-    def __init__(self, llm_router=None):
+    def __init__(self, llm_router=None, mcp_client=None):
         self.llm = llm_router
+        self.mcp = mcp_client
         self._session_plans: Dict[str, RefactorPlan] = {}
 
     async def apply_pattern(self, request: PatternRequest) -> RefactorPlan:

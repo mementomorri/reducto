@@ -243,7 +243,7 @@ def cli_runner():
     from subprocess import CompletedProcess
     
     def run_cli(args: list, cwd: Path = None, input: str = None) -> CompletedProcess:
-        """Run dehydrate CLI with given arguments."""
+        """Run reducto CLI with given arguments."""
         cmd = ["python", "-m", "ai_sidecar.main"] + args
         
         return subprocess.run(

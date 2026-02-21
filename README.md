@@ -1,4 +1,4 @@
-# dehydrator
+# reducto
 
 **Semantic Code Compression Engine**
 
@@ -9,9 +9,9 @@ Autonomously refactor codebases to reduce complexity and eliminate duplication w
 ### Download Binary
 
 ```bash
-curl -sSL https://github.com/alexkarsten/dehydrate/releases/latest/download/dehydrate-linux-amd64 -o dehydrate
-chmod +x dehydrate
-sudo mv dehydrate /usr/local/bin/
+curl -sSL https://github.com/alexkarsten/reducto/releases/latest/download/reducto-linux-amd64 -o reducto
+chmod +x reducto
+sudo mv reducto /usr/local/bin/
 ```
 
 ### Build from Source
@@ -19,19 +19,19 @@ sudo mv dehydrate /usr/local/bin/
 Requires Go 1.21+ and Python 3.10+.
 
 ```bash
-git clone https://github.com/alexkarsten/dehydrate.git
-cd dehydrate
+git clone https://github.com/alexkarsten/reducto.git
+cd reducto
 pip install -r python/requirements.txt
-go build -o dehydrate ./cmd/dehydrate
+go build -o reducto ./cmd/reducto
 ```
 
 ## Usage
 
 ```bash
-dehydrate analyze .              # Scan for complexity hotspots and duplicates
-dehydrate deduplicate .          # Find and eliminate code duplication
-dehydrate idiomatize .           # Transform code to idiomatic patterns
-dehydrate pattern factory .      # Apply a design pattern
+reducto analyze .              # Scan for complexity hotspots and duplicates
+reducto deduplicate .          # Find and eliminate code duplication
+reducto idiomatize .           # Transform code to idiomatic patterns
+reducto pattern factory .      # Apply a design pattern
 ```
 
 ### Flags

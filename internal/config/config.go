@@ -4,12 +4,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/alexkarsten/dehydrate/pkg/models"
+	"github.com/alexkarsten/reducto/pkg/models"
 	"github.com/spf13/viper"
 )
 
 const (
-	DefaultConfigName = ".dehydrate"
+	DefaultConfigName = ".reducto"
 	DefaultConfigType = "yaml"
 )
 
