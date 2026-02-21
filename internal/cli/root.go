@@ -1,11 +1,15 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/alexkarsten/reducto/internal/config"
 	"github.com/alexkarsten/reducto/internal/git"
+	"github.com/alexkarsten/reducto/internal/mcp"
 	"github.com/alexkarsten/reducto/internal/reporter"
 	"github.com/alexkarsten/reducto/internal/sidecar"
 	"github.com/alexkarsten/reducto/pkg/models"
@@ -197,6 +201,23 @@ func runReport(sessionID string) error {
 	return rep.Load(sessionID)
 }
 
+func runMCP(path string) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		cancel()
+	}()
+
+	server := mcp.NewServer(path)
+	defer server.Shutdown()
+
+	return server.Start(ctx, os.Stdin, os.Stdout)
+}
+
 var analyzeCmd = &cobra.Command{
 	Use:   "analyze [path]",
 	Short: "Analyze repository for compression opportunities",
@@ -298,6 +319,25 @@ var versionCmd = &cobra.Command{
 	},
 }
 
+var mcpCmd = &cobra.Command{
+	Use:   "mcp [path]",
+	Short: "Start MCP server for tool access",
+	Long: `Starts the MCP (Model Context Protocol) server that provides
+tools for file operations, symbol extraction, diff application, etc.
+
+The server reads JSON-RPC requests from stdin and writes responses to stdout.
+This is primarily used by the Python AI sidecar for communication.`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		path := "."
+		if len(args) > 0 {
+			path = args[0]
+		}
+
+		return runMCP(path)
+	},
+}
+
 func initCommands() {
 	analyzeCmd.Flags().Bool("report", false, "generate report after analysis")
 	deduplicateCmd.Flags().BoolP("yes", "y", false, "skip approval and apply changes automatically")
@@ -312,6 +352,7 @@ func initCommands() {
 	rootCmd.AddCommand(patternCmd)
 	rootCmd.AddCommand(reportCmd)
 	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(mcpCmd)
 }
 
 func init() {

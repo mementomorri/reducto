@@ -14,6 +14,10 @@ func ApplyUnifiedDiff(original, diff string) (string, error) {
 		return "", err
 	}
 
+	if len(hunks) == 0 && strings.TrimSpace(diff) != "" {
+		return "", NewError(ParseFailure, "No valid hunks found in diff", "diff content did not contain any valid hunk headers")
+	}
+
 	for i := len(hunks) - 1; i >= 0; i-- {
 		lines, err = applyHunk(lines, hunks[i])
 		if err != nil {
