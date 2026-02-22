@@ -7,6 +7,7 @@ from ai_sidecar.agents.deduplicator import DeduplicatorAgent
 from ai_sidecar.agents.idiomatizer import IdiomatizerAgent
 from ai_sidecar.agents.pattern import PatternAgent
 from ai_sidecar.agents.validator import ValidatorAgent
+from ai_sidecar.agents.quality_checker import QualityCheckerAgent
 
 __all__ = [
     "AnalyzerAgent",
@@ -14,4 +15,5 @@ __all__ = [
     "IdiomatizerAgent",
     "PatternAgent",
     "ValidatorAgent",
+    "QualityCheckerAgent",
 ]

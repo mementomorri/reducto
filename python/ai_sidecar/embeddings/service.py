@@ -22,12 +22,24 @@ class EmbeddingService:
         self._initialized = False
         self._use_real_embeddings = False
 
-    async def initialize(self):
+    async def initialize(self, verbose: bool = False):
         if self._initialized:
             return
 
         try:
+            import os
+            if not verbose:
+                os.environ["TOKENIZERS_PARALLELISM"] = "false"
+                os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+                os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
+                os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+            
             from sentence_transformers import SentenceTransformer
+            import logging as st_logging
+            st_logging.getLogger("sentence_transformers").setLevel(st_logging.ERROR)
+            st_logging.getLogger("transformers").setLevel(st_logging.ERROR)
+            st_logging.getLogger("huggingface_hub").setLevel(st_logging.ERROR)
+            
             self.model = SentenceTransformer('all-MiniLM-L6-v2')
             self._use_real_embeddings = True
             logger.info("Loaded sentence-transformers model: all-MiniLM-L6-v2")

@@ -14,6 +14,7 @@ from ai_sidecar.models import (
     Language,
     ComplexityMetrics,
     ModelTier,
+    FileInfo,
 )
 from ai_sidecar.embeddings import EmbeddingService
 
@@ -51,12 +52,12 @@ class DeduplicatorAgent:
         self._session_plans[session_id] = plan
         return plan
 
-    async def _extract_blocks(self, files: List[Dict]) -> List[CodeBlock]:
+    async def _extract_blocks(self, files: List[FileInfo]) -> List[CodeBlock]:
         blocks = []
 
         for file in files:
-            path = file["path"]
-            content = file["content"]
+            path = file.path
+            content = file.content if file.content else ""
             language = self._detect_language(path)
 
             file_blocks = await self._parse_blocks(content, path, language)

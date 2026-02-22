@@ -136,8 +136,11 @@ func (m *MCPManager) readResultFromStderr(reader io.Reader) {
 				default:
 				}
 			}
+			continue
 		}
-		fmt.Fprintln(os.Stderr, line)
+		if m.cfg != nil && m.cfg.Verbose {
+			fmt.Fprintln(os.Stderr, line)
+		}
 	}
 }
 
@@ -275,6 +278,29 @@ func (m *MCPManager) ApplyPattern(pattern, path string) (*models.RefactorPlan, e
 
 func (m *MCPManager) ApplyPlan(sessionID string) (*models.RefactorResult, error) {
 	return nil, fmt.Errorf("ApplyPlan not yet implemented for MCP mode")
+}
+
+func (m *MCPManager) Check(path string) (map[string]interface{}, error) {
+	if err := m.Start("check", path); err != nil {
+		return nil, err
+	}
+	defer m.Stop()
+
+	result, err := m.WaitForResult(10 * time.Minute)
+	if err != nil {
+		return nil, err
+	}
+
+	if errStr, ok := result["error"].(string); ok && errStr != "" {
+		return nil, fmt.Errorf("check failed: %s", errStr)
+	}
+
+	data, ok := result["data"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid check result format")
+	}
+
+	return data, nil
 }
 
 func (m *MCPManager) parsePlan(result map[string]interface{}) (*models.RefactorPlan, error) {

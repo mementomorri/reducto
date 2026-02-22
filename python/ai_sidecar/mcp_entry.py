@@ -22,6 +22,7 @@ from ai_sidecar.agents import (
     IdiomatizerAgent,
     PatternAgent,
     ValidatorAgent,
+    QualityCheckerAgent,
 )
 from ai_sidecar.embeddings import EmbeddingService
 from ai_sidecar.llm import LLMRouter
@@ -50,7 +51,7 @@ class MCPSidecar:
     4. Python prints result JSON to stdout (Go reads this)
     """
 
-    def __init__(self):
+    def __init__(self, verbose: bool = False):
         self.mcp: Optional[MCPClient] = None
         self.embedding_service: Optional[EmbeddingService] = None
         self.llm_router: Optional[LLMRouter] = None
@@ -59,8 +60,10 @@ class MCPSidecar:
         self.idiomatizer: Optional[IdiomatizerAgent] = None
         self.pattern_agent: Optional[PatternAgent] = None
         self.validator: Optional[ValidatorAgent] = None
+        self.quality_checker: Optional[QualityCheckerAgent] = None
         self.root_dir: str = "."
         self._plans: Dict[str, RefactorPlan] = {}
+        self.verbose: bool = verbose
 
     async def initialize(self, root_dir: str):
         self.root_dir = root_dir
@@ -71,7 +74,7 @@ class MCPSidecar:
         init_result = await self.mcp.initialize(root_dir)
 
         self.embedding_service = EmbeddingService()
-        await self.embedding_service.initialize()
+        await self.embedding_service.initialize(verbose=self.verbose)
 
         self.llm_router = LLMRouter()
 
@@ -83,6 +86,7 @@ class MCPSidecar:
         self.pattern_agent = PatternAgent(llm_router=self.llm_router, mcp_client=self.mcp)
         self.validator = ValidatorAgent(mcp_client=self.mcp)
         self.validator.set_agents(self.deduplicator, self.idiomatizer, self.pattern_agent)
+        self.quality_checker = QualityCheckerAgent(mcp_client=self.mcp)
 
     async def run_command(self, command: str, path: str) -> Dict[str, Any]:
         """Execute a single command and return result."""
@@ -97,6 +101,8 @@ class MCPSidecar:
                 return await self._pattern(path)
             elif command == "apply_plan":
                 return await self._apply_plan(path)
+            elif command == "check":
+                return await self._check(path)
             else:
                 return {"error": f"Unknown command: {command}"}
         except Exception as e:
@@ -113,7 +119,7 @@ class MCPSidecar:
 
         request = AnalyzeRequest(path=path, files=files)
         result = await self.analyzer.analyze(request)
-        result_dict = result.model_dump()
+        result_dict = result.model_dump(mode='json')
         result_dict["symbols"] = len(result.symbols)
         return result_dict
 
@@ -127,7 +133,7 @@ class MCPSidecar:
         request = DeduplicateRequest(path=path, files=files, similarity_threshold=0.85)
         plan = await self.deduplicator.find_duplicates(request)
         self._plans[plan.session_id] = plan
-        return plan.model_dump()
+        return plan.model_dump(mode='json')
 
     async def _idiomatize(self, path: str) -> Dict[str, Any]:
         files_data = await self.mcp.list_files()
@@ -139,7 +145,7 @@ class MCPSidecar:
         request = IdiomatizeRequest(path=path, files=files, language=Language.PYTHON)
         plan = await self.idiomatizer.idiomatize(request)
         self._plans[plan.session_id] = plan
-        return plan.model_dump()
+        return plan.model_dump(mode='json')
 
     async def _pattern(self, path: str) -> Dict[str, Any]:
         files_data = await self.mcp.list_files()
@@ -151,7 +157,30 @@ class MCPSidecar:
         request = PatternRequest(pattern="", path=path, files=files)
         plan = await self.pattern_agent.apply_pattern(request)
         self._plans[plan.session_id] = plan
-        return plan.model_dump()
+        return plan.model_dump(mode='json')
+
+    async def _check(self, path: str) -> Dict[str, Any]:
+        """
+        Check code quality and detect problematic patterns.
+        
+        Detects:
+        - Unpronounceable/cryptic variable names
+        - Single-letter variables in non-loop contexts
+        - Long functions (over 50 lines)
+        - High complexity functions
+        - Naming convention violations
+        """
+        files_data = await self.mcp.list_files()
+        
+        files_with_content = []
+        for f in files_data.get("files", []):
+            file_path = f["path"]
+            content_data = await self.mcp.read_file(file_path)
+            content = content_data.get("content", "")
+            files_with_content.append(FileInfo(path=file_path, content=content, hash=f.get("hash")))
+        
+        report = await self.quality_checker.check_quality(files_with_content, path)
+        return report.to_dict()
 
     async def _apply_plan(self, path: str) -> Dict[str, Any]:
         """
@@ -277,6 +306,15 @@ async def main():
     parser.add_argument("--verbose", "-v", action="store_true", default=False, help="Verbose output")
     args = parser.parse_args()
 
+    if not args.verbose:
+        os.environ["TOKENIZERS_PARALLELISM"] = "false"
+        os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+        os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
+        os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
+        os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+        import warnings
+        warnings.filterwarnings("ignore")
+
     log_level = logging.INFO if args.verbose else logging.ERROR
     logging.basicConfig(
         level=log_level,
@@ -284,7 +322,7 @@ async def main():
         stream=sys.stderr,
     )
 
-    sidecar = MCPSidecar()
+    sidecar = MCPSidecar(verbose=args.verbose)
     result = None
     exit_code = 0
     
