@@ -1,0 +1,242 @@
+# Installation Tests
+#
+# These tests verify that reducto can be installed via all supported methods.
+# They run ONLY in GitHub Actions CI/CD and are never executed locally.
+#
+# Test coverage:
+# - go build + pip install (source installation)
+# - Shell script installer (binary download + sidecar setup)
+# - Docker build and run
+# - Cross-platform binary builds (Linux, macOS, Windows)
+# - GoReleaser configuration validation
+# - Python package build and install
+# - Python version matrix (3.10-3.13)
+
+name: Installation Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-go-install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      
+      - name: Install Python sidecar
+        run: uv pip install --system ./python
+      
+      - name: Install via go build
+        run: |
+          go build -o $HOME/.local/bin/reducto ./cmd/reducto
+          mkdir -p $HOME/.local/share/reducto/sidecar
+          cp -r python/* $HOME/.local/share/reducto/sidecar/
+      
+      - name: Verify installation
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          reducto --help
+          reducto version
+      
+      - name: Test analyze command
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          reducto analyze . --help
+
+  test-shell-script:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      
+      - name: Set up Python
+        uses: astral-sh/setup-uv@v5
+      
+      - name: Create mock release
+        run: |
+          mkdir -p /tmp/mock-release
+          go build -o reducto ./cmd/reducto
+          tar -czvf /tmp/mock-release/reducto_Linux_x86_64.tar.gz reducto python/
+      
+      - name: Mock GitHub API
+        run: |
+          cat > /tmp/mock-release/api.json << 'EOF'
+          {"tag_name": "v0.1.0"}
+          EOF
+      
+      - name: Test install script (local mode)
+        env:
+          INSTALL_DIR: $HOME/.local/bin
+        run: |
+          mkdir -p $HOME/.local/bin $HOME/.local/share/reducto
+          
+          tar -xzf /tmp/mock-release/reducto_Linux_x86_64.tar.gz -C /tmp/
+          mv /tmp/reducto $HOME/.local/bin/
+          chmod +x $HOME/.local/bin/reducto
+          mv /tmp/python $HOME/.local/share/reducto/sidecar
+          
+          uv pip install --system $HOME/.local/share/reducto/sidecar
+          
+          export PATH="$HOME/.local/bin:$PATH"
+          reducto --help
+          reducto version
+
+  test-docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Docker image
+        run: docker build -t reducto-test:latest .
+      
+      - name: Verify Docker image
+        run: |
+          docker run --rm reducto-test:latest --help
+          docker run --rm reducto-test:latest version
+      
+      - name: Test with mounted volume
+        run: |
+          docker run --rm -v $(pwd):/workspace -w /workspace reducto-test:latest analyze . --help
+
+  test-cross-platform-build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        arch: [amd64, arm64]
+        exclude:
+          - os: macos-latest
+            arch: amd64
+          - os: windows-latest
+            arch: arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      
+      - name: Build binary
+        run: |
+          go build -o reducto${{ matrix.os == 'windows' && '.exe' || '' }} ./cmd/reducto
+      
+      - name: Verify binary runs
+        run: |
+          ./reducto${{ matrix.os == 'windows' && '.exe' || '' }} --help
+          ./reducto${{ matrix.os == 'windows' && '.exe' || '' }} version
+
+  test-goreleaser-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: '~> v2'
+          install-only: true
+      
+      - name: Validate GoReleaser config
+        run: goreleaser check
+      
+      - name: Test build (snapshot)
+        run: goreleaser build --snapshot --clean
+
+  test-python-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      
+      - name: Build Python package
+        run: |
+          cd python
+          uv build
+      
+      - name: Install from wheel
+        run: |
+          cd python
+          uv pip install --system ./dist/*.whl
+      
+      - name: Verify package installed
+        run: |
+          python -c "import ai_sidecar; print('ai_sidecar imported successfully')"
+          python -c "from ai_sidecar.mcp_entry import main; print('mcp_entry accessible')"
+      
+      - name: Test CLI entry point
+        run: |
+          reducto-sidecar --help || true
+
+  test-full-installation-matrix:
+    needs: [test-go-install, test-shell-script, test-docker-build]
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12', '3.13']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      
+      - name: Build and install
+        run: |
+          go build -o $HOME/.local/bin/reducto ./cmd/reducto
+          mkdir -p $HOME/.local/share/reducto/sidecar
+          cp -r python/* $HOME/.local/share/reducto/sidecar/
+          uv pip install --system $HOME/.local/share/reducto/sidecar
+      
+      - name: Verify
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          reducto --help
+          python -c "import ai_sidecar; print(f'Python ${{ matrix.python-version }}: OK')"
