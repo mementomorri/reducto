@@ -6,24 +6,40 @@ Autonomously refactor codebases to reduce complexity and eliminate duplication w
 
 ## Install
 
-### Download Binary
+### Quick Install (Linux/macOS)
 
 ```bash
-curl -sSL https://github.com/alexkarsten/reducto/releases/latest/download/reducto-linux-amd64 -o reducto
-chmod +x reducto
-sudo mv reducto /usr/local/bin/
+curl -sSL https://raw.githubusercontent.com/alexkarsten/reducto/main/install.sh | sh
+```
+
+### Docker
+
+```bash
+docker pull ghcr.io/alexkarsten/reducto:latest
+docker run -v $(pwd):/app ghcr.io/alexkarsten/reducto analyze /app
 ```
 
 ### Build from Source
 
-Requires Go 1.21+ and Python 3.10+.
+Requires Go 1.24+ and Python 3.10+.
 
 ```bash
 git clone https://github.com/alexkarsten/reducto.git
 cd reducto
-pip install -r python/requirements.txt
+
+# Install Python dependencies
+pip install python/
+
+# Build and run
 go build -o reducto ./cmd/reducto
+./reducto analyze .
 ```
+
+### Prerequisites
+
+- **Python 3.10+** - Required for AI-powered analysis
+- **pip or uv** - For Python dependency management
+- *(Optional)* **Ollama** - For local LLM inference
 
 ## Usage
 

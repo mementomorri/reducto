@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -56,9 +55,9 @@ func (m *MCPManager) Start(command, path string) error {
 		return err
 	}
 
-	sidecarPath := m.findSidecarPath()
-	if sidecarPath == "" {
-		return fmt.Errorf("could not find ai_sidecar module")
+	sidecarPath, err := getOrCreateSidecarPath()
+	if err != nil {
+		return err
 	}
 
 	args := []string{
@@ -305,51 +304,6 @@ func (m *MCPManager) checkPythonInstalled() error {
 		}
 	}
 	return nil
-}
-
-func (m *MCPManager) findSidecarPath() string {
-	candidates := []string{
-		"python",
-		"../python",
-		"../../python",
-	}
-
-	execPath, err := os.Executable()
-	if err == nil {
-		execDir := filepath.Dir(execPath)
-		candidates = append(candidates,
-			filepath.Join(execDir, "python"),
-			filepath.Join(execDir, "../python"),
-			filepath.Join(execDir, "../../python"),
-		)
-	}
-
-	for _, candidate := range candidates {
-		absPath, err := filepath.Abs(candidate)
-		if err != nil {
-			continue
-		}
-
-		if m.isValidSidecarPath(absPath) {
-			return absPath
-		}
-	}
-
-	return ""
-}
-
-func (m *MCPManager) isValidSidecarPath(path string) bool {
-	initPath := filepath.Join(path, "ai_sidecar", "__init__.py")
-	if _, err := os.Stat(initPath); err == nil {
-		return true
-	}
-
-	mainPath := filepath.Join(path, "ai_sidecar", "mcp_entry.py")
-	if _, err := os.Stat(mainPath); err == nil {
-		return true
-	}
-
-	return false
 }
 
 func (m *MCPManager) IsRunning() bool {

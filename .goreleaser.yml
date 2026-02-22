@@ -1,0 +1,98 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    main: ./cmd/reducto
+    binary: reducto
+
+archives:
+  - id: default
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    files:
+      - src: python/**
+        dst: python
+      - src: python/pyproject.toml
+        dst: python
+      - LICENSE
+      - README.md
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: alexkarsten
+    name: reducto
+  draft: false
+  prerelease: auto
+  mode: replace
+  header: |
+    ## reducto {{ .Tag }}
+    
+    Semantic code compression engine.
+    
+    ### Installation
+    
+    ```bash
+    curl -sSL https://raw.githubusercontent.com/alexkarsten/reducto/main/install.sh | sh
+    ```
+    
+    Or download the archive for your platform from the assets below.
+
+brews:
+  - name: reducto
+    repository:
+      owner: alexkarsten
+      name: homebrew-tap
+    directory: Formula
+    homepage: https://github.com/alexkarsten/reducto
+    description: Semantic code compression engine
+    license: MIT
+    install: |
+      bin.install "reducto"
+      libexec.install Dir["python"]
+      (prefix/"python").install_symlink libexec/"python"
+    test: |
+      system "#{bin}/reducto", "--help"
+
+dockers:
+  - image_templates:
+      - "ghcr.io/alexkarsten/reducto:{{ .Tag }}"
+      - "ghcr.io/alexkarsten/reducto:latest"
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.source={{ .GitURL }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
