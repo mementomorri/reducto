@@ -51,7 +51,7 @@ class MCPSidecar:
     4. Python prints result JSON to stdout (Go reads this)
     """
 
-    def __init__(self, verbose: bool = False):
+    def __init__(self, verbose: bool = False, model: Optional[str] = None, prefer_local: bool = True):
         self.mcp: Optional[MCPClient] = None
         self.embedding_service: Optional[EmbeddingService] = None
         self.llm_router: Optional[LLMRouter] = None
@@ -64,6 +64,8 @@ class MCPSidecar:
         self.root_dir: str = "."
         self._plans: Dict[str, RefactorPlan] = {}
         self.verbose: bool = verbose
+        self.model: Optional[str] = model
+        self.prefer_local: bool = prefer_local
 
     async def initialize(self, root_dir: str):
         self.root_dir = root_dir
@@ -76,7 +78,7 @@ class MCPSidecar:
         self.embedding_service = EmbeddingService()
         await self.embedding_service.initialize(verbose=self.verbose)
 
-        self.llm_router = LLMRouter()
+        self.llm_router = LLMRouter(verbose=self.verbose, model_override=self.model, prefer_local=self.prefer_local)
 
         self.analyzer = AnalyzerAgent(llm_router=self.llm_router, mcp_client=self.mcp)
         self.deduplicator = DeduplicatorAgent(
@@ -87,6 +89,9 @@ class MCPSidecar:
         self.validator = ValidatorAgent(mcp_client=self.mcp)
         self.validator.set_agents(self.deduplicator, self.idiomatizer, self.pattern_agent)
         self.quality_checker = QualityCheckerAgent(mcp_client=self.mcp)
+        
+        if self.verbose:
+            logger.info(f"Sidecar initialized: model_override={self.model}, prefer_local={self.prefer_local}")
 
     async def run_command(self, command: str, path: str) -> Dict[str, Any]:
         """Execute a single command and return result."""
@@ -304,7 +309,12 @@ async def main():
     parser.add_argument("--session-id", default=None, help="Session ID for apply_plan command")
     parser.add_argument("--run-tests", action="store_true", default=True, help="Run tests after applying changes")
     parser.add_argument("--verbose", "-v", action="store_true", default=False, help="Verbose output")
+    parser.add_argument("--model", default=None, help="Model override (e.g., gpt-4o, ollama/qwen2.5-coder:1.5b)")
+    parser.add_argument("--prefer-local", action="store_true", default=True, help="Prefer local Ollama models (default: True)")
+    parser.add_argument("--prefer-remote", action="store_true", default=False, help="Prefer remote cloud models")
     args = parser.parse_args()
+
+    prefer_local = not args.prefer_remote
 
     if not args.verbose:
         os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -322,7 +332,7 @@ async def main():
         stream=sys.stderr,
     )
 
-    sidecar = MCPSidecar(verbose=args.verbose)
+    sidecar = MCPSidecar(verbose=args.verbose, model=args.model, prefer_local=prefer_local)
     result = None
     exit_code = 0
     

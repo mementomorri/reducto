@@ -66,8 +66,16 @@ func (m *MCPManager) Start(command, path string) error {
 		"--command", command,
 	}
 
-	if m.cfg != nil && m.cfg.Verbose {
-		args = append(args, "--verbose")
+	if m.cfg != nil {
+		if m.cfg.Verbose {
+			args = append(args, "--verbose")
+		}
+		if m.cfg.Model != "" {
+			args = append(args, "--model", m.cfg.Model)
+		}
+		if !m.cfg.PreferLocal {
+			args = append(args, "--prefer-remote")
+		}
 	}
 
 	m.cmd = exec.Command("python3", args...)

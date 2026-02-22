@@ -50,6 +50,7 @@ func DefaultConfig() *models.Config {
 		OutputFormat:    "markdown",
 		ExcludePatterns: []string{".git", "node_modules", "venv", "__pycache__", "vendor", "dist", "build"},
 		IncludePatterns: []string{"*.py", "*.js", "*.ts", "*.go", "*.java"},
+		PreferLocal:     true,
 	}
 }
 
@@ -114,6 +115,8 @@ func setDefaults(v *viper.Viper, cfg *models.Config) {
 	v.SetDefault("output_format", cfg.OutputFormat)
 	v.SetDefault("exclude_patterns", cfg.ExcludePatterns)
 	v.SetDefault("include_patterns", cfg.IncludePatterns)
+	v.SetDefault("prefer_local", cfg.PreferLocal)
+	v.SetDefault("model", cfg.Model)
 }
 
 func Save(cfg *models.Config, path string) error {

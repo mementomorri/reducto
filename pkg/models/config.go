@@ -47,4 +47,6 @@ type Config struct {
 	ExcludePatterns      []string             `mapstructure:"exclude_patterns" yaml:"exclude_patterns"`
 	IncludePatterns      []string             `mapstructure:"include_patterns" yaml:"include_patterns"`
 	Verbose              bool                 `mapstructure:"verbose" yaml:"verbose"`
+	Model                string               `mapstructure:"model" yaml:"model"`
+	PreferLocal          bool                 `mapstructure:"prefer_local" yaml:"prefer_local"`
 }

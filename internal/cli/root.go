@@ -18,10 +18,13 @@ import (
 )
 
 var (
-	cfgFile    string
-	verbose    bool
-	cfg        *models.Config
-	mcpManager *sidecar.MCPManager
+	cfgFile      string
+	verbose      bool
+	model        string
+	preferLocal  bool
+	preferRemote bool
+	cfg          *models.Config
+	mcpManager   *sidecar.MCPManager
 )
 
 var rootCmd = &cobra.Command{
@@ -43,6 +46,16 @@ and applies design patterns to reduce cognitive load.`,
 			cfg.Verbose = true
 		}
 
+		if model != "" {
+			cfg.Model = model
+		}
+
+		if preferRemote {
+			cfg.PreferLocal = false
+		} else if cmd.Flags().Changed("prefer-local") {
+			cfg.PreferLocal = preferLocal
+		}
+
 		return nil
 	},
 }
@@ -50,6 +63,9 @@ and applies design patterns to reduce cognitive load.`,
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.reducto.yaml)")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
+	rootCmd.PersistentFlags().StringVar(&model, "model", "", "LLM model override (e.g., gpt-4o, ollama/qwen2.5-coder:1.5b)")
+	rootCmd.PersistentFlags().BoolVar(&preferLocal, "prefer-local", true, "prefer local Ollama models")
+	rootCmd.PersistentFlags().BoolVar(&preferRemote, "prefer-remote", false, "prefer remote cloud models")
 }
 
 func Execute() {
