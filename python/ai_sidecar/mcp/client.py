@@ -125,8 +125,11 @@ class MCPClient:
             except asyncio.CancelledError:
                 pass
         if self._writer:
-            self._writer.close()
-            await self._writer.wait_closed()
+            try:
+                self._writer.close()
+                await self._writer.wait_closed()
+            except NotImplementedError:
+                pass
 
     async def read_file(self, path: str) -> Dict[str, Any]:
         """Read a file from the repository."""

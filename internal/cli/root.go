@@ -18,6 +18,7 @@ import (
 
 var (
 	cfgFile    string
+	verbose    bool
 	cfg        *models.Config
 	mcpManager *sidecar.MCPManager
 )
@@ -37,12 +38,17 @@ and applies design patterns to reduce cognitive load.`,
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
+		if verbose {
+			cfg.Verbose = true
+		}
+
 		return nil
 	},
 }
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.reducto.yaml)")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 }
 
 func Execute() {

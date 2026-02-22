@@ -36,11 +36,6 @@ from ai_sidecar.models import (
     Language,
 )
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    stream=sys.stderr,
-)
 logger = logging.getLogger(__name__)
 
 
@@ -74,7 +69,6 @@ class MCPSidecar:
         await self.mcp.connect()
 
         init_result = await self.mcp.initialize(root_dir)
-        logger.info(f"MCP initialized: {init_result}")
 
         self.embedding_service = EmbeddingService()
         await self.embedding_service.initialize()
@@ -90,12 +84,8 @@ class MCPSidecar:
         self.validator = ValidatorAgent(mcp_client=self.mcp)
         self.validator.set_agents(self.deduplicator, self.idiomatizer, self.pattern_agent)
 
-        logger.info("MCPSidecar initialized successfully")
-
     async def run_command(self, command: str, path: str) -> Dict[str, Any]:
         """Execute a single command and return result."""
-        logger.info(f"Running command: {command} on {path}")
-        
         try:
             if command == "analyze":
                 return await self._analyze(path)
@@ -115,6 +105,7 @@ class MCPSidecar:
 
     async def _analyze(self, path: str) -> Dict[str, Any]:
         files_data = await self.mcp.list_files()
+        
         files = [
             FileInfo(path=f["path"], content="", hash=f.get("hash"))
             for f in files_data.get("files", [])
@@ -122,7 +113,9 @@ class MCPSidecar:
 
         request = AnalyzeRequest(path=path, files=files)
         result = await self.analyzer.analyze(request)
-        return result.model_dump()
+        result_dict = result.model_dump()
+        result_dict["symbols"] = len(result.symbols)
+        return result_dict
 
     async def _deduplicate(self, path: str) -> Dict[str, Any]:
         files_data = await self.mcp.list_files()
@@ -268,15 +261,11 @@ class MCPSidecar:
         return "\n".join(diff_lines)
 
     async def shutdown(self):
-        logger.info("Shutting down MCPSidecar...")
-
         if self.embedding_service:
             await self.embedding_service.shutdown()
 
         if self.mcp:
             await self.mcp.shutdown()
-
-        logger.info("Shutdown complete")
 
 
 async def main():
@@ -285,7 +274,15 @@ async def main():
     parser.add_argument("--command", default="analyze", help="Command to execute")
     parser.add_argument("--session-id", default=None, help="Session ID for apply_plan command")
     parser.add_argument("--run-tests", action="store_true", default=True, help="Run tests after applying changes")
+    parser.add_argument("--verbose", "-v", action="store_true", default=False, help="Verbose output")
     args = parser.parse_args()
+
+    log_level = logging.INFO if args.verbose else logging.ERROR
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        stream=sys.stderr,
+    )
 
     sidecar = MCPSidecar()
     result = None
@@ -311,7 +308,8 @@ async def main():
         await sidecar.shutdown()
 
     if result:
-        print("RESULT:" + json.dumps({"status": "success" if "error" not in result else "error", "data": result}), file=sys.stderr)
+        result_json = json.dumps({"status": "success" if "error" not in result else "error", "data": result})
+        print("RESULT:" + result_json, file=sys.stderr, flush=True)
     
     sys.exit(exit_code)
 

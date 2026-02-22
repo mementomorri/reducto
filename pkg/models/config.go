@@ -45,4 +45,5 @@ type Config struct {
 	OutputFormat         string               `mapstructure:"output_format" yaml:"output_format"`
 	ExcludePatterns      []string             `mapstructure:"exclude_patterns" yaml:"exclude_patterns"`
 	IncludePatterns      []string             `mapstructure:"include_patterns" yaml:"include_patterns"`
+	Verbose              bool                 `mapstructure:"verbose" yaml:"verbose"`
 }

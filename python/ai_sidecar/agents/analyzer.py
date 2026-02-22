@@ -2,6 +2,8 @@
 Analyzer agent for repository analysis and complexity detection.
 """
 
+import asyncio
+import logging
 import os
 import uuid
 from typing import List, Dict, Any, Optional
@@ -16,12 +18,19 @@ from ai_sidecar.models import (
     ModelTier,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class AnalyzerAgent:
     def __init__(self, llm_router=None, mcp_client=None):
         self.llm = llm_router
         self.mcp = mcp_client
         self._session_cache: Dict[str, Any] = {}
+
+    def _get_file_attr(self, file, attr: str):
+        if hasattr(file, attr):
+            return getattr(file, attr)
+        return file.get(attr)
 
     async def analyze(self, request: AnalyzeRequest) -> AnalyzeResult:
         path = request.path
@@ -49,11 +58,11 @@ class AnalyzerAgent:
     async def _scan_directory_mcp(self, path: str):
         result = await self.mcp.list_files()
         files = []
-        for f in result.get("files", []):
-            file_data = await self.mcp.read_file(f["path"])
+        for f in result.get("files") or []:
+            file_data = await self.mcp.read_file(f.get("path") if hasattr(f, 'get') else f["path"])
             files.append({
-                "path": f["path"],
-                "content": file_data.get("content", ""),
+                "path": f.get("path") if hasattr(f, 'get') else f["path"],
+                "content": file_data.get("content", "") if hasattr(file_data, 'get') else file_data["content"],
             })
         return files
 
@@ -86,29 +95,45 @@ class AnalyzerAgent:
         _, ext = os.path.splitext(filename)
         return ext.lower() in include_exts
 
-    async def _extract_symbols(self, files: List[Dict]) -> List[Symbol]:
+    async def _extract_symbols(self, files) -> List[Symbol]:
         symbols = []
-
+        code_files = []
+        
         for file in files:
-            content = file["content"]
-            path = file["path"]
+            if hasattr(file, 'content'):
+                content = file.content
+                path = file.path
+            else:
+                content = file["content"]
+                path = file["path"]
+            
+            if self._should_include(path):
+                code_files.append((path, content))
+        
+        for path, content in code_files:
             language = self._detect_language(path)
 
             if self.mcp and not content:
-                result = await self.mcp.get_symbols(path)
-                for s in result.get("symbols", []):
-                    symbols.append(Symbol(
-                        name=s.get("name", ""),
-                        type=s.get("type", ""),
-                        file=path,
-                        start_line=s.get("start_line", 0),
-                        end_line=s.get("end_line", 0),
-                        signature=s.get("signature"),
-                    ))
-            else:
+                try:
+                    result = await asyncio.wait_for(self.mcp.get_symbols(path), timeout=5.0)
+                    if result and isinstance(result, dict):
+                        for s in result.get("symbols") or []:
+                            symbols.append(Symbol(
+                                name=s.get("name", ""),
+                                type=s.get("type", ""),
+                                file=path,
+                                start_line=s.get("start_line", 0),
+                                end_line=s.get("end_line", 0),
+                                signature=s.get("signature"),
+                            ))
+                except asyncio.TimeoutError:
+                    logger.warning(f"Timeout getting symbols for {path}")
+                except Exception as e:
+                    logger.warning(f"Error getting symbols for {path}: {e}")
+            elif content:
                 file_symbols = await self._parse_symbols(content, path, language)
                 symbols.extend(file_symbols)
-
+        
         return symbols
 
     def _detect_language(self, path: str) -> Language:
@@ -306,14 +331,20 @@ class AnalyzerAgent:
 
     async def _find_hotspots(
         self,
-        files: List[Dict],
+        files,
         symbols: List[Symbol],
     ) -> List[ComplexityHotspot]:
         hotspots = []
         complexity_threshold = 10
-
+        
+        file_contents = {}
+        for f in files:
+            fpath = self._get_file_attr(f, 'path')
+            fcontent = self._get_file_attr(f, 'content') or ""
+            file_contents[fpath] = fcontent
+        
         for symbol in symbols:
-            metrics = await self._calculate_complexity(symbol, files)
+            metrics = await self._calculate_complexity_fast(symbol, file_contents)
             if metrics.cyclomatic_complexity >= complexity_threshold:
                 hotspots.append(ComplexityHotspot(
                     file=symbol.file,
@@ -322,22 +353,20 @@ class AnalyzerAgent:
                     cyclomatic_complexity=metrics.cyclomatic_complexity,
                     cognitive_complexity=metrics.cognitive_complexity,
                 ))
-
+        
         return sorted(hotspots, key=lambda x: -x.cyclomatic_complexity)[:20]
 
-    async def _calculate_complexity(
+    async def _calculate_complexity_fast(
         self,
         symbol: Symbol,
-        files: List[Dict],
+        file_contents: Dict[str, str],
     ) -> ComplexityMetrics:
         content = ""
-        for f in files:
-            if f["path"] == symbol.file:
-                lines = f["content"].split("\n")
-                if symbol.start_line <= len(lines):
-                    end_line = min(symbol.end_line, len(lines))
-                    content = "\n".join(lines[symbol.start_line - 1:end_line])
-                break
+        if symbol.file in file_contents:
+            lines = file_contents[symbol.file].split("\n")
+            if symbol.start_line <= len(lines):
+                end_line = min(symbol.end_line, len(lines))
+                content = "\n".join(lines[symbol.start_line - 1:end_line])
 
         if not content:
             return ComplexityMetrics()

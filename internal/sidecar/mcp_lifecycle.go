@@ -61,12 +61,17 @@ func (m *MCPManager) Start(command, path string) error {
 		return fmt.Errorf("could not find ai_sidecar module")
 	}
 
-	m.cmd = exec.Command(
-		"python3",
+	args := []string{
 		"-m", "ai_sidecar.mcp_entry",
 		"--root", path,
 		"--command", command,
-	)
+	}
+
+	if m.cfg != nil && m.cfg.Verbose {
+		args = append(args, "--verbose")
+	}
+
+	m.cmd = exec.Command("python3", args...)
 	m.cmd.Dir = sidecarPath
 	m.cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1")
 

@@ -38,10 +38,7 @@ class EmbeddingService:
             logger.warning(f"Failed to load sentence-transformers: {e}, using mock embeddings")
             self._use_real_embeddings = False
 
-        self.client = chromadb.Client(Settings(
-            chroma_db_impl="duckdb+parquet",
-            persist_directory=None,
-        ))
+        self.client = chromadb.EphemeralClient()
 
         self.collection = self.client.get_or_create_collection(
             name="code_embeddings",

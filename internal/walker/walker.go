@@ -42,6 +42,16 @@ func (w *Walker) Walk(root string) ([]models.FileInfo, error) {
 			return nil
 		}
 
+		if d.Type()&fs.ModeSymlink != 0 {
+			info, err := os.Stat(path)
+			if err != nil {
+				return nil
+			}
+			if info.IsDir() {
+				return nil
+			}
+		}
+
 		if w.shouldExcludeFile(path) {
 			return nil
 		}
@@ -107,6 +117,14 @@ func (w *Walker) Walk(root string) ([]models.FileInfo, error) {
 
 func (w *Walker) shouldExcludeDir(path string) bool {
 	name := filepath.Base(path)
+
+	defaultExcludes := []string{".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache", "dist", "build", "target", ".idea", ".vscode"}
+	for _, excl := range defaultExcludes {
+		if name == excl {
+			return true
+		}
+	}
+
 	for _, pattern := range w.excludePatterns {
 		if name == pattern {
 			return true
