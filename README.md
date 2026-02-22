@@ -52,6 +52,7 @@ reducto pattern factory .      # Apply a design pattern
 
 ### Flags
 
+- `--dry-run` - Show proposed changes without applying (useful for CI/CD)
 - `--yes` - Skip approval prompts, apply changes automatically
 - `--commit` - Commit changes to git after successful refactoring
 - `--report` - Generate a detailed report

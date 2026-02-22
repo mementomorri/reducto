@@ -41,6 +41,7 @@ type Config struct {
 	ComplexityThresholds ComplexityThresholds `mapstructure:"complexity_thresholds" yaml:"complexity_thresholds"`
 	PreApprove           bool                 `mapstructure:"pre_approve" yaml:"pre_approve"`
 	CommitChanges        bool                 `mapstructure:"commit_changes" yaml:"commit_changes"`
+	DryRun               bool                 `mapstructure:"dry_run" yaml:"dry_run"`
 	Report               bool                 `mapstructure:"report" yaml:"report"`
 	OutputFormat         string               `mapstructure:"output_format" yaml:"output_format"`
 	ExcludePatterns      []string             `mapstructure:"exclude_patterns" yaml:"exclude_patterns"`

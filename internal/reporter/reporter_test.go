@@ -373,3 +373,223 @@ func TestLoad(t *testing.T) {
 		}
 	})
 }
+
+func TestGenerateDryRun(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	cfg := &models.Config{}
+	r := New(cfg)
+	r.outputDir = filepath.Join(tmpDir, ".reducto")
+
+	plan := &models.RefactorPlan{
+		SessionID: "dry-run-test-123",
+		Changes: []models.FileChange{
+			{
+				Path:        "utils/new_file.py",
+				Description: "Extract duplicate function 'process_data' found in 3 files",
+				Original:    "",
+				Modified:    "def process_data(data):\n    return data.strip()\n",
+			},
+			{
+				Path:        "src/main.py",
+				Description: "Remove duplicate code, use extracted function",
+				Original:    "def process_data(data):\n    return data.strip()\n",
+				Modified:    "from utils.new_file import process_data\n",
+			},
+		},
+		Description: "Found 3 duplicate code blocks",
+	}
+
+	err := r.GenerateDryRun(plan, "deduplicate", "/project")
+	if err != nil {
+		t.Fatalf("GenerateDryRun returned error: %v", err)
+	}
+
+	expectedPath := filepath.Join(tmpDir, ".reducto", "reducto-dryrun-dry-run-test-123.md")
+	if _, err := os.Stat(expectedPath); os.IsNotExist(err) {
+		t.Errorf("expected dry-run report file at %s", expectedPath)
+	}
+
+	content, err := os.ReadFile(expectedPath)
+	if err != nil {
+		t.Fatalf("failed to read dry-run report: %v", err)
+	}
+
+	contentStr := string(content)
+	if !strings.Contains(contentStr, "DRY RUN MODE") {
+		t.Error("dry-run report should contain DRY RUN MODE")
+	}
+	if !strings.Contains(contentStr, "dry-run-test-123") {
+		t.Error("dry-run report should contain session ID")
+	}
+	if !strings.Contains(contentStr, "deduplicate") {
+		t.Error("dry-run report should contain command name")
+	}
+	if !strings.Contains(contentStr, "utils/new_file.py") {
+		t.Error("dry-run report should contain file paths")
+	}
+	if !strings.Contains(contentStr, "Proposed Changes") {
+		t.Error("dry-run report should have Proposed Changes section")
+	}
+}
+
+func TestFormatDryRunMarkdown(t *testing.T) {
+	cfg := &models.Config{}
+	r := New(cfg)
+
+	t.Run("with changes", func(t *testing.T) {
+		plan := &models.RefactorPlan{
+			SessionID: "test-session",
+			Changes: []models.FileChange{
+				{
+					Path:        "test.py",
+					Description: "Test change",
+					Original:    "old code\n",
+					Modified:    "new code\n",
+				},
+			},
+			Description: "Test plan",
+		}
+
+		content := r.formatDryRunMarkdown(plan, "deduplicate", "/test/path")
+
+		if !strings.Contains(content, "# reducto Dry-Run Report") {
+			t.Error("should contain title")
+		}
+		if !strings.Contains(content, "**DRY RUN MODE**") {
+			t.Error("should contain dry-run warning")
+		}
+		if !strings.Contains(content, "deduplicate") {
+			t.Error("should contain command name")
+		}
+		if !strings.Contains(content, "/test/path") {
+			t.Error("should contain path")
+		}
+		if !strings.Contains(content, "test-session") {
+			t.Error("should contain session ID")
+		}
+		if !strings.Contains(content, "Proposed Changes") {
+			t.Error("should contain proposed changes section")
+		}
+		if !strings.Contains(content, "test.py") {
+			t.Error("should contain file path")
+		}
+	})
+
+	t.Run("with no changes", func(t *testing.T) {
+		plan := &models.RefactorPlan{
+			SessionID:   "empty-session",
+			Changes:     []models.FileChange{},
+			Description: "No changes found",
+		}
+
+		content := r.formatDryRunMarkdown(plan, "idiomatize", "/empty")
+
+		if !strings.Contains(content, "No changes proposed") {
+			t.Error("should indicate no changes")
+		}
+	})
+
+	t.Run("new file creation", func(t *testing.T) {
+		plan := &models.RefactorPlan{
+			SessionID: "new-file-session",
+			Changes: []models.FileChange{
+				{
+					Path:        "utils/new.py",
+					Description: "Create new utility file",
+					Original:    "",
+					Modified:    "def helper():\n    pass\n",
+				},
+			},
+			Description: "Create new file",
+		}
+
+		content := r.formatDryRunMarkdown(plan, "pattern", "/project")
+
+		if !strings.Contains(content, "--- /dev/null") {
+			t.Error("should show /dev/null for new files")
+		}
+		if !strings.Contains(content, "+++ b/utils/new.py") {
+			t.Error("should show new file path")
+		}
+	})
+
+	t.Run("file deletion", func(t *testing.T) {
+		plan := &models.RefactorPlan{
+			SessionID: "delete-session",
+			Changes: []models.FileChange{
+				{
+					Path:        "old_file.py",
+					Description: "Remove obsolete file",
+					Original:    "old content\n",
+					Modified:    "",
+				},
+			},
+			Description: "Delete file",
+		}
+
+		content := r.formatDryRunMarkdown(plan, "deduplicate", "/project")
+
+		if !strings.Contains(content, "--- a/old_file.py") {
+			t.Error("should show original file path for deletion")
+		}
+		if !strings.Contains(content, "+++ /dev/null") {
+			t.Error("should show /dev/null for deleted files")
+		}
+	})
+}
+
+func TestEstimateLOCChange(t *testing.T) {
+	cfg := &models.Config{}
+	r := New(cfg)
+
+	tests := []struct {
+		name        string
+		changes     []models.FileChange
+		wantPattern string
+	}{
+		{
+			name:        "no changes",
+			changes:     []models.FileChange{},
+			wantPattern: "0",
+		},
+		{
+			name: "only additions",
+			changes: []models.FileChange{
+				{Original: "", Modified: "line1\nline2\n"},
+			},
+			wantPattern: "+",
+		},
+		{
+			name: "only removals",
+			changes: []models.FileChange{
+				{Original: "line1\nline2\n", Modified: ""},
+			},
+			wantPattern: "-",
+		},
+		{
+			name: "mixed changes",
+			changes: []models.FileChange{
+				{Original: "", Modified: "new1\n"},
+				{Original: "old1\nold2\n", Modified: ""},
+			},
+			wantPattern: "/",
+		},
+		{
+			name: "modification",
+			changes: []models.FileChange{
+				{Original: "line1\nline2\nline3\n", Modified: "new1\nnew2\n"},
+			},
+			wantPattern: "-",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := r.estimateLOCChange(tt.changes)
+			if !strings.Contains(result, tt.wantPattern) {
+				t.Errorf("expected pattern %q in result %q", tt.wantPattern, result)
+			}
+		})
+	}
+}

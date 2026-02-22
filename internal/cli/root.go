@@ -161,17 +161,26 @@ func runAnalyzeWithReport(path string) error {
 	return nil
 }
 
-func runDeduplicate(path string, commitChanges bool, generateReport bool) error {
-	fmt.Printf("Running deduplication: %s\n", path)
-
-	if err := checkGitState(path); err != nil {
-		return err
+func runDeduplicate(path string, commitChanges bool, generateReport bool, dryRun bool) error {
+	if dryRun {
+		fmt.Println("=== DRY RUN MODE - No changes will be applied ===")
+	} else {
+		if err := checkGitState(path); err != nil {
+			return err
+		}
 	}
+
+	fmt.Printf("Running deduplication: %s\n", path)
 
 	mcpManager = sidecar.NewMCPManager(path, cfg)
 	plan, err := mcpManager.Deduplicate(path)
 	if err != nil {
 		return fmt.Errorf("deduplication planning failed: %w", err)
+	}
+
+	if dryRun {
+		rep := reporter.New(cfg)
+		return rep.GenerateDryRun(plan, "deduplicate", path)
 	}
 
 	fmt.Printf("\n=== Refactoring Plan ===\n")
@@ -199,17 +208,26 @@ func runDeduplicate(path string, commitChanges bool, generateReport bool) error 
 	return nil
 }
 
-func runIdiomatize(path string) error {
-	fmt.Printf("Running idiomatization: %s\n", path)
-
-	if err := checkGitState(path); err != nil {
-		return err
+func runIdiomatize(path string, dryRun bool) error {
+	if dryRun {
+		fmt.Println("=== DRY RUN MODE - No changes will be applied ===")
+	} else {
+		if err := checkGitState(path); err != nil {
+			return err
+		}
 	}
+
+	fmt.Printf("Running idiomatization: %s\n", path)
 
 	mcpManager = sidecar.NewMCPManager(path, cfg)
 	plan, err := mcpManager.Idiomatize(path)
 	if err != nil {
 		return fmt.Errorf("idiomatization planning failed: %w", err)
+	}
+
+	if dryRun {
+		rep := reporter.New(cfg)
+		return rep.GenerateDryRun(plan, "idiomatize", path)
 	}
 
 	fmt.Printf("\n=== Idiomatization Plan ===\n")
@@ -228,18 +246,27 @@ func runIdiomatize(path string) error {
 	return nil
 }
 
-func runPattern(pattern, path string) error {
+func runPattern(pattern, path string, dryRun bool) error {
+	if dryRun {
+		fmt.Println("=== DRY RUN MODE - No changes will be applied ===")
+	} else {
+		if err := checkGitState(path); err != nil {
+			return err
+		}
+	}
+
 	fmt.Printf("Applying design pattern: %s\n", pattern)
 	fmt.Printf("Path: %s\n", path)
-
-	if err := checkGitState(path); err != nil {
-		return err
-	}
 
 	mcpManager = sidecar.NewMCPManager(path, cfg)
 	plan, err := mcpManager.ApplyPattern(pattern, path)
 	if err != nil {
 		return fmt.Errorf("pattern injection failed: %w", err)
+	}
+
+	if dryRun {
+		rep := reporter.New(cfg)
+		return rep.GenerateDryRun(plan, "pattern", path)
 	}
 
 	fmt.Printf("\n=== Pattern Injection Plan ===\n")
@@ -322,8 +349,9 @@ and suggests or applies refactoring to eliminate duplication.`,
 
 		commitChanges, _ := cmd.Flags().GetBool("commit")
 		generateReport, _ := cmd.Flags().GetBool("report")
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
 
-		return runDeduplicate(path, commitChanges, generateReport)
+		return runDeduplicate(path, commitChanges, generateReport, dryRun)
 	},
 }
 
@@ -341,8 +369,9 @@ or applies transformations to make code more idiomatic.`,
 
 		preApprove, _ := cmd.Flags().GetBool("yes")
 		cfg.PreApprove = preApprove
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
 
-		return runIdiomatize(path)
+		return runIdiomatize(path, dryRun)
 	},
 }
 
@@ -365,8 +394,9 @@ var patternCmd = &cobra.Command{
 
 		preApprove, _ := cmd.Flags().GetBool("yes")
 		cfg.PreApprove = preApprove
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
 
-		return runPattern(pattern, path)
+		return runPattern(pattern, path, dryRun)
 	},
 }
 
@@ -412,10 +442,13 @@ func initCommands() {
 	deduplicateCmd.Flags().BoolP("yes", "y", false, "skip approval and apply changes automatically")
 	deduplicateCmd.Flags().Bool("commit", false, "commit changes to git after successful refactoring")
 	deduplicateCmd.Flags().Bool("report", false, "generate report after deduplication")
+	deduplicateCmd.Flags().Bool("dry-run", false, "show proposed changes without applying")
 	idiomatizeCmd.Flags().BoolP("yes", "y", false, "skip approval and apply changes automatically")
 	idiomatizeCmd.Flags().Bool("report", false, "generate report after idiomatization")
+	idiomatizeCmd.Flags().Bool("dry-run", false, "show proposed changes without applying")
 	patternCmd.Flags().BoolP("yes", "y", false, "skip approval and apply changes automatically")
 	patternCmd.Flags().Bool("report", false, "generate report after pattern injection")
+	patternCmd.Flags().Bool("dry-run", false, "show proposed changes without applying")
 	reportCmd.Flags().StringP("session", "s", "", "session ID to report (default: last session)")
 
 	rootCmd.AddCommand(analyzeCmd)

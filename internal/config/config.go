@@ -45,6 +45,7 @@ func DefaultConfig() *models.Config {
 		},
 		PreApprove:      false,
 		CommitChanges:   false,
+		DryRun:          false,
 		Report:          false,
 		OutputFormat:    "markdown",
 		ExcludePatterns: []string{".git", "node_modules", "venv", "__pycache__", "vendor", "dist", "build"},
@@ -108,6 +109,7 @@ func setDefaults(v *viper.Viper, cfg *models.Config) {
 
 	v.SetDefault("pre_approve", cfg.PreApprove)
 	v.SetDefault("commit_changes", cfg.CommitChanges)
+	v.SetDefault("dry_run", cfg.DryRun)
 	v.SetDefault("report", cfg.Report)
 	v.SetDefault("output_format", cfg.OutputFormat)
 	v.SetDefault("exclude_patterns", cfg.ExcludePatterns)
@@ -133,6 +135,7 @@ func Save(cfg *models.Config, path string) error {
 	v.Set("complexity_thresholds", cfg.ComplexityThresholds)
 	v.Set("pre_approve", cfg.PreApprove)
 	v.Set("commit_changes", cfg.CommitChanges)
+	v.Set("dry_run", cfg.DryRun)
 	v.Set("report", cfg.Report)
 	v.Set("output_format", cfg.OutputFormat)
 	v.Set("exclude_patterns", cfg.ExcludePatterns)
