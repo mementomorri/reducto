@@ -117,12 +117,14 @@ class MCPSidecar:
     async def _analyze(self, path: str) -> Dict[str, Any]:
         files_data = await self.mcp.list_files()
         
-        files = [
-            FileInfo(path=f["path"], content="", hash=f.get("hash"))
-            for f in files_data.get("files", [])
-        ]
+        files_with_content = []
+        for f in files_data.get("files", []):
+            file_path = f["path"]
+            content_data = await self.mcp.read_file(file_path)
+            content = content_data.get("content", "")
+            files_with_content.append(FileInfo(path=file_path, content=content, hash=f.get("hash")))
 
-        request = AnalyzeRequest(path=path, files=files)
+        request = AnalyzeRequest(path=path, files=files_with_content)
         result = await self.analyzer.analyze(request)
         result_dict = result.model_dump(mode='json')
         result_dict["symbols"] = len(result.symbols)
@@ -130,36 +132,42 @@ class MCPSidecar:
 
     async def _deduplicate(self, path: str) -> Dict[str, Any]:
         files_data = await self.mcp.list_files()
-        files = [
-            FileInfo(path=f["path"], content="", hash=f.get("hash"))
-            for f in files_data.get("files", [])
-        ]
+        files_with_content = []
+        for f in files_data.get("files", []):
+            file_path = f["path"]
+            content_data = await self.mcp.read_file(file_path)
+            content = content_data.get("content", "")
+            files_with_content.append(FileInfo(path=file_path, content=content, hash=f.get("hash")))
 
-        request = DeduplicateRequest(path=path, files=files, similarity_threshold=0.85)
+        request = DeduplicateRequest(path=path, files=files_with_content, similarity_threshold=0.85)
         plan = await self.deduplicator.find_duplicates(request)
         self._plans[plan.session_id] = plan
         return plan.model_dump(mode='json')
 
     async def _idiomatize(self, path: str) -> Dict[str, Any]:
         files_data = await self.mcp.list_files()
-        files = [
-            FileInfo(path=f["path"], content="", hash=f.get("hash"))
-            for f in files_data.get("files", [])
-        ]
+        files_with_content = []
+        for f in files_data.get("files", []):
+            file_path = f["path"]
+            content_data = await self.mcp.read_file(file_path)
+            content = content_data.get("content", "")
+            files_with_content.append(FileInfo(path=file_path, content=content, hash=f.get("hash")))
 
-        request = IdiomatizeRequest(path=path, files=files, language=Language.PYTHON)
+        request = IdiomatizeRequest(path=path, files=files_with_content, language=Language.PYTHON)
         plan = await self.idiomatizer.idiomatize(request)
         self._plans[plan.session_id] = plan
         return plan.model_dump(mode='json')
 
     async def _pattern(self, path: str) -> Dict[str, Any]:
         files_data = await self.mcp.list_files()
-        files = [
-            FileInfo(path=f["path"], content="", hash=f.get("hash"))
-            for f in files_data.get("files", [])
-        ]
+        files_with_content = []
+        for f in files_data.get("files", []):
+            file_path = f["path"]
+            content_data = await self.mcp.read_file(file_path)
+            content = content_data.get("content", "")
+            files_with_content.append(FileInfo(path=file_path, content=content, hash=f.get("hash")))
 
-        request = PatternRequest(pattern="", path=path, files=files)
+        request = PatternRequest(pattern="", path=path, files=files_with_content)
         plan = await self.pattern_agent.apply_pattern(request)
         self._plans[plan.session_id] = plan
         return plan.model_dump(mode='json')
