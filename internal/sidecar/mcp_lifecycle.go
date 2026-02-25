@@ -186,8 +186,13 @@ func (m *MCPManager) Analyze(path string) (*AnalyzeResult, error) {
 		return nil, err
 	}
 
-	if errStr, ok := result["error"].(string); ok && errStr != "" {
-		return nil, fmt.Errorf("analyze failed: %s", errStr)
+	if status, ok := result["status"].(string); ok && status == "error" {
+		if data, ok := result["data"].(map[string]interface{}); ok {
+			if errStr, ok := data["error"].(string); ok && errStr != "" {
+				return nil, fmt.Errorf("%s", errStr)
+			}
+		}
+		return nil, fmt.Errorf("analysis failed with status: error")
 	}
 
 	data, ok := result["data"].(map[string]interface{})
