@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="reducto - Semantic Code Compression Engine. Autonomously refactor codebases to reduce complexity while maintaining 100% functional parity.">
-    <title>reducto - Semantic Code Compression Engine</title>
+    <meta name="description" content="reducto - The Shrinking Charm for Your Code. Magically reduce code complexity while preserving functionality.">
+    <title>reducto - The Shrinking Charm for Your Code</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -13,64 +16,102 @@
         }
 
         :root {
-            --bg-primary: #ffffff;
-            --bg-secondary: #f6f8fa;
-            --bg-tertiary: #eaeef2;
-            --text-primary: #1f2328;
-            --text-secondary: #656d76;
-            --text-muted: #8b949e;
-            --accent: #0969da;
-            --accent-hover: #0550ae;
-            --border: #d1d9e0;
-            --code-bg: #f6f8fa;
-            --success: #1a7f37;
+            --bg-void: #0a0a12;
+            --bg-deep: #12101f;
+            --bg-night: #1a1530;
+            --bg-mystical: #231d3d;
+            --gold: #d4a853;
+            --gold-light: #f0d78c;
+            --gold-dark: #9a7832;
+            --purple-glow: #8b5cf6;
+            --purple-deep: #5b21b6;
+            --blue-magic: #3b82f6;
+            --cyan-sparkle: #22d3ee;
+            --text-light: #f0e6d3;
+            --text-muted: #a89ec9;
+            --text-whisper: #6b5f8a;
+            --success: #4ade80;
+            --border-magic: rgba(139, 92, 246, 0.3);
         }
 
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-primary: #0d1117;
-                --bg-secondary: #161b22;
-                --bg-tertiary: #21262d;
-                --text-primary: #e6edf3;
-                --text-secondary: #8b949e;
-                --text-muted: #6e7681;
-                --accent: #58a6ff;
-                --accent-hover: #79b8ff;
-                --border: #30363d;
-                --code-bg: #161b22;
-                --success: #3fb950;
-            }
+        html {
+            scroll-behavior: smooth;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.6;
+            font-family: 'Crimson Pro', Georgia, serif;
+            background: var(--bg-void);
+            color: var(--text-light);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        .wand-cursor {
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%23d4a853' d='M7.5 5.6L5 7l1.4-2.5L5 2l2.5 1.4L10 2 8.6 4.5 10 7 7.5 5.6zm12 9.8L22 14l-1.4 2.5L22 19l-2.5-1.4L17 19l1.4-2.5L17 14l2.5 1.4zM22 2l-1.4 2.5L22 7l-2.5-1.4L17 7l1.4-2.5L17 2l2.5 1.4L22 2zm-8.66 10.78l2.44-2.44-2.12-2.12-2.44 2.44 2.12 2.12zm1.03-5.49l2.34 2.34c.39.37.39 1.02 0 1.41L5.04 22.71c-.39.39-1.04.39-1.41 0l-2.34-2.34c-.39-.39-.39-1.02 0-1.41L12.96 7.29c.39-.39 1.04-.39 1.41 0z'/%3E%3C/svg%3E") 0 24, auto;
+        }
+
+        #magic-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--gold);
+            border-radius: 50%;
+            opacity: 0;
+            animation: float-sparkle 4s infinite ease-in-out;
+            box-shadow: 0 0 6px var(--gold), 0 0 12px var(--gold-light);
+        }
+
+        @keyframes float-sparkle {
+            0%, 100% { opacity: 0; transform: translateY(0) scale(0.5); }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(-100px) scale(1.2); }
         }
 
         a {
-            color: var(--accent);
+            color: var(--gold);
             text-decoration: none;
+            transition: all 0.3s ease;
         }
 
         a:hover {
-            text-decoration: underline;
+            color: var(--gold-light);
+            text-shadow: 0 0 8px var(--gold);
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 24px;
+            position: relative;
+            z-index: 10;
         }
 
         header {
-            padding: 16px 0;
-            border-bottom: 1px solid var(--border);
-            position: sticky;
+            padding: 20px 0;
+            position: fixed;
             top: 0;
-            background: var(--bg-primary);
+            left: 0;
+            right: 0;
             z-index: 100;
+            background: linear-gradient(180deg, var(--bg-void) 0%, transparent 100%);
+            transition: background 0.3s ease;
+        }
+
+        header.scrolled {
+            background: rgba(10, 10, 18, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-magic);
         }
 
         .header-content {
@@ -80,277 +121,643 @@
         }
 
         .logo {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--text-primary);
+            font-family: 'Cinzel', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gold);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
+            letter-spacing: 0.1em;
+            text-transform: lowercase;
         }
 
         .logo-icon {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, var(--accent), #a371f7);
-            border-radius: 8px;
+            width: 44px;
+            height: 44px;
+            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 1rem;
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, var(--purple-glow) 0%, transparent 70%);
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+
+        .logo-icon svg {
+            width: 28px;
+            height: 28px;
+            fill: var(--gold);
+            filter: drop-shadow(0 0 4px var(--gold));
+            position: relative;
+            z-index: 2;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 32px;
         }
 
         nav a {
-            margin-left: 24px;
-            color: var(--text-secondary);
-            font-size: 0.875rem;
+            font-family: 'Cinzel', serif;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            position: relative;
+        }
+
+        nav a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--gold), var(--purple-glow));
+            transition: width 0.3s ease;
+        }
+
+        nav a:hover::after {
+            width: 100%;
         }
 
         nav a:hover {
-            color: var(--text-primary);
+            color: var(--gold);
         }
 
         .hero {
-            padding: 96px 0 80px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             text-align: center;
+            position: relative;
+            padding: 120px 24px 80px;
+            overflow: hidden;
+        }
+
+        .hero-bg {
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 20% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 80% 80%, rgba(212, 168, 83, 0.08) 0%, transparent 50%);
+            z-index: 0;
+        }
+
+        .hero-stars {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 0.8; }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 10;
+        }
+
+        .spell-incantation {
+            font-family: 'Cinzel', serif;
+            font-size: 0.9rem;
+            color: var(--purple-glow);
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+            opacity: 0;
+            animation: reveal-up 1s ease forwards 0.3s;
+            text-shadow: 0 0 20px var(--purple-glow);
         }
 
         .hero h1 {
-            font-size: 3.5rem;
+            font-family: 'Cinzel', serif;
+            font-size: clamp(4rem, 12vw, 8rem);
             font-weight: 700;
-            margin-bottom: 16px;
-            letter-spacing: -0.02em;
+            letter-spacing: 0.15em;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 50%, var(--gold-dark) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            opacity: 0;
+            animation: reveal-up 1s ease forwards 0.5s, shimmer 3s infinite ease-in-out 1.5s;
+            text-shadow: none;
+            filter: drop-shadow(0 4px 30px rgba(212, 168, 83, 0.3));
+        }
+
+        @keyframes shimmer {
+            0%, 100% { filter: drop-shadow(0 4px 30px rgba(212, 168, 83, 0.3)); }
+            50% { filter: drop-shadow(0 4px 40px rgba(212, 168, 83, 0.5)); }
         }
 
         .hero .tagline {
-            font-size: 1.5rem;
-            color: var(--accent);
-            font-weight: 500;
-            margin-bottom: 16px;
+            font-family: 'Cinzel', serif;
+            font-size: clamp(1rem, 3vw, 1.4rem);
+            color: var(--cyan-sparkle);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+            opacity: 0;
+            animation: reveal-up 1s ease forwards 0.7s;
         }
 
         .hero .subtitle {
-            font-size: 1.25rem;
-            color: var(--text-secondary);
-            max-width: 640px;
-            margin: 0 auto 40px;
+            font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto 48px;
+            opacity: 0;
+            animation: reveal-up 1s ease forwards 0.9s;
+        }
+
+        @keyframes reveal-up {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .cta-buttons {
             display: flex;
-            gap: 16px;
+            gap: 20px;
             justify-content: center;
             flex-wrap: wrap;
+            opacity: 0;
+            animation: reveal-up 1s ease forwards 1.1s;
         }
 
         .btn {
+            font-family: 'Cinzel', serif;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 12px 24px;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-weight: 500;
-            border: 1px solid var(--border);
+            gap: 10px;
+            padding: 16px 32px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
             cursor: pointer;
             text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+
+        .btn:hover::before {
+            transform: translateX(100%);
         }
 
         .btn-primary {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
+            background: linear-gradient(135deg, var(--gold-dark) 0%, var(--gold) 50%, var(--gold-light) 100%);
+            color: var(--bg-void);
+            border: none;
+            box-shadow: 0 4px 20px rgba(212, 168, 83, 0.3), inset 0 1px 0 rgba(255,255,255,0.2);
         }
 
         .btn-primary:hover {
-            background: var(--accent-hover);
-            border-color: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(212, 168, 83, 0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+            color: var(--bg-void);
             text-decoration: none;
         }
 
         .btn-secondary {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
+            background: transparent;
+            color: var(--text-light);
+            border: 1px solid var(--border-magic);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.1);
         }
 
         .btn-secondary:hover {
-            background: var(--bg-tertiary);
+            background: rgba(139, 92, 246, 0.1);
+            border-color: var(--purple-glow);
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
+            color: var(--text-light);
             text-decoration: none;
+            transform: translateY(-2px);
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            animation: reveal-up 1s ease forwards 1.5s, bounce 2s infinite ease-in-out 2.5s;
+        }
+
+        .scroll-indicator svg {
+            width: 24px;
+            height: 24px;
+            stroke: var(--text-whisper);
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(10px); }
+        }
+
+        section {
+            position: relative;
+            z-index: 10;
         }
 
         .features {
-            padding: 80px 0;
-            background: var(--bg-secondary);
+            padding: 120px 0;
+            background: linear-gradient(180deg, var(--bg-void) 0%, var(--bg-deep) 50%, var(--bg-void) 100%);
+            position: relative;
+        }
+
+        .features::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border-magic), transparent);
         }
 
         .section-title {
+            font-family: 'Cinzel', serif;
             text-align: center;
-            font-size: 2rem;
+            font-size: clamp(2rem, 5vw, 2.8rem);
             font-weight: 600;
-            margin-bottom: 48px;
+            margin-bottom: 16px;
+            letter-spacing: 0.1em;
+            color: var(--text-light);
+        }
+
+        .section-subtitle {
+            text-align: center;
+            font-size: 1.1rem;
+            color: var(--text-whisper);
+            margin-bottom: 64px;
+            font-style: italic;
         }
 
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 32px;
         }
 
         .feature-card {
-            background: var(--bg-primary);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 24px;
+            background: linear-gradient(135deg, rgba(26, 21, 48, 0.8) 0%, rgba(18, 16, 31, 0.9) 100%);
+            border: 1px solid var(--border-magic);
+            border-radius: 8px;
+            padding: 32px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+            opacity: 0;
+            transform: translateY(40px);
+        }
+
+        .feature-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--purple-glow), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-card:hover {
+            border-color: var(--purple-glow);
+            box-shadow: 0 8px 40px rgba(139, 92, 246, 0.15);
+            transform: translateY(-4px);
         }
 
         .feature-icon {
-            width: 48px;
-            height: 48px;
-            background: var(--bg-tertiary);
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--bg-mystical) 0%, var(--bg-night) 100%);
+            border: 1px solid var(--border-magic);
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            margin-bottom: 16px;
+            font-size: 1.75rem;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .feature-icon::after {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--purple-glow), var(--blue-magic));
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .feature-card:hover .feature-icon::after {
+            opacity: 0.5;
         }
 
         .feature-card h3 {
-            font-size: 1.125rem;
+            font-family: 'Cinzel', serif;
+            font-size: 1.25rem;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
+            color: var(--gold);
+            letter-spacing: 0.05em;
         }
 
         .feature-card p {
-            color: var(--text-secondary);
-            font-size: 0.9375rem;
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            line-height: 1.7;
         }
 
         .how-it-works {
-            padding: 80px 0;
+            padding: 120px 0;
+            background: var(--bg-void);
+            position: relative;
+        }
+
+        .spell-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            border: 1px solid rgba(139, 92, 246, 0.1);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .spell-circle::before {
+            content: '';
+            position: absolute;
+            inset: 40px;
+            border: 1px solid rgba(139, 92, 246, 0.08);
+            border-radius: 50%;
+        }
+
+        .spell-circle::after {
+            content: '';
+            position: absolute;
+            inset: 80px;
+            border: 1px solid rgba(139, 92, 246, 0.05);
+            border-radius: 50%;
         }
 
         .steps {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
             gap: 48px;
-            justify-content: center;
-            flex-wrap: wrap;
+            position: relative;
+            z-index: 10;
         }
 
         .step {
-            flex: 1;
-            min-width: 240px;
-            max-width: 320px;
             text-align: center;
+            padding: 24px;
+            opacity: 0;
+            transform: translateY(40px);
+        }
+
+        .step.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .step-number {
-            width: 64px;
-            height: 64px;
-            background: var(--accent);
-            color: white;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--bg-night) 0%, var(--bg-mystical) 100%);
+            border: 2px solid var(--purple-glow);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-family: 'Cinzel', serif;
+            font-size: 1.75rem;
             font-weight: 700;
-            margin: 0 auto 16px;
+            color: var(--gold);
+            margin: 0 auto 24px;
+            position: relative;
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.2);
+        }
+
+        .step-number::before {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 50%;
+            animation: rotate-ring 10s linear infinite;
+        }
+
+        @keyframes rotate-ring {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
         .step h3 {
-            font-size: 1.25rem;
+            font-family: 'Cinzel', serif;
+            font-size: 1.4rem;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
+            color: var(--text-light);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
         }
 
         .step p {
-            color: var(--text-secondary);
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            line-height: 1.7;
         }
 
         .installation {
-            padding: 80px 0;
-            background: var(--bg-secondary);
+            padding: 120px 0;
+            background: linear-gradient(180deg, var(--bg-void) 0%, var(--bg-deep) 100%);
+            position: relative;
+        }
+
+        .installation::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border-magic), transparent);
         }
 
         .install-options {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
             gap: 32px;
+            max-width: 1000px;
+            margin: 0 auto;
         }
 
         .install-card {
-            background: var(--bg-primary);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 24px;
+            background: linear-gradient(135deg, rgba(26, 21, 48, 0.9) 0%, rgba(18, 16, 31, 0.95) 100%);
+            border: 1px solid var(--border-magic);
+            border-radius: 8px;
+            padding: 32px;
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(40px);
+        }
+
+        .install-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .install-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-dark));
         }
 
         .install-card h3 {
-            font-size: 1.125rem;
+            font-family: 'Cinzel', serif;
+            font-size: 1.2rem;
             font-weight: 600;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
+            color: var(--text-light);
+            letter-spacing: 0.05em;
         }
 
         .install-card h3 .badge {
-            font-size: 0.75rem;
-            padding: 2px 8px;
-            background: var(--success);
-            color: white;
-            border-radius: 9999px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            padding: 4px 10px;
+            background: linear-gradient(135deg, var(--success) 0%, #22c55e 100%);
+            color: var(--bg-void);
+            border-radius: 4px;
             font-weight: 500;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .install-card > p {
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            font-size: 1rem;
         }
 
         pre {
-            background: var(--code-bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 16px;
+            background: rgba(10, 10, 18, 0.8);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 6px;
+            padding: 20px;
             overflow-x: auto;
-            font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
-            font-size: 0.875rem;
-            line-height: 1.5;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
         }
 
         code {
-            font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+            font-family: 'JetBrains Mono', monospace;
         }
 
         .code-comment {
-            color: var(--text-muted);
+            color: var(--text-whisper);
         }
 
         .code-command {
-            color: var(--text-primary);
+            color: var(--cyan-sparkle);
         }
 
         .code-output {
-            color: var(--text-secondary);
+            color: var(--text-muted);
         }
 
         .demo {
-            padding: 80px 0;
+            padding: 120px 0;
+            background: var(--bg-void);
+            position: relative;
         }
 
         .terminal {
-            background: var(--code-bg);
-            border: 1px solid var(--border);
+            background: linear-gradient(135deg, rgba(10, 10, 18, 0.95) 0%, rgba(18, 16, 31, 0.95) 100%);
+            border: 1px solid var(--border-magic);
             border-radius: 12px;
             overflow: hidden;
             max-width: 800px;
             margin: 0 auto;
+            box-shadow: 0 8px 60px rgba(139, 92, 246, 0.15);
+            opacity: 0;
+            transform: translateY(40px);
+        }
+
+        .terminal.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .terminal-header {
-            background: var(--bg-tertiary);
-            padding: 12px 16px;
+            background: linear-gradient(90deg, var(--bg-night) 0%, var(--bg-mystical) 100%);
+            padding: 14px 18px;
             display: flex;
-            gap: 8px;
-            border-bottom: 1px solid var(--border);
+            gap: 10px;
+            border-bottom: 1px solid var(--border-magic);
         }
 
         .terminal-dot {
@@ -359,59 +766,98 @@
             border-radius: 50%;
         }
 
-        .terminal-dot.red { background: #ff5f56; }
-        .terminal-dot.yellow { background: #ffbd2e; }
-        .terminal-dot.green { background: #27c93f; }
+        .terminal-dot.red { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .terminal-dot.yellow { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
+        .terminal-dot.green { background: linear-gradient(135deg, #4ade80, #22c55e); }
 
         .terminal-body {
-            padding: 24px;
-            font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
-            font-size: 0.875rem;
-            line-height: 1.7;
+            padding: 28px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.8;
         }
 
         .terminal-prompt {
+            color: var(--gold);
+            font-weight: 500;
+        }
+
+        .terminal-output {
+            color: var(--text-muted);
+        }
+
+        .terminal-highlight {
+            color: var(--purple-glow);
+        }
+
+        .terminal-success {
             color: var(--success);
         }
 
         footer {
-            padding: 48px 0;
-            border-top: 1px solid var(--border);
+            padding: 64px 0;
+            background: linear-gradient(180deg, var(--bg-void) 0%, var(--bg-deep) 100%);
+            border-top: 1px solid var(--border-magic);
             text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        .footer-logo {
+            font-family: 'Cinzel', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gold);
+            letter-spacing: 0.15em;
+            margin-bottom: 24px;
         }
 
         .footer-links {
             display: flex;
-            gap: 32px;
+            gap: 40px;
             justify-content: center;
-            margin-bottom: 16px;
+            margin-bottom: 24px;
             flex-wrap: wrap;
         }
 
         .footer-links a {
-            color: var(--text-secondary);
+            font-family: 'Cinzel', serif;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .footer-links a:hover {
+            color: var(--gold);
         }
 
         .footer-copyright {
-            color: var(--text-muted);
-            font-size: 0.875rem;
+            color: var(--text-whisper);
+            font-size: 0.9rem;
+        }
+
+        .footer-quote {
+            margin-top: 24px;
+            font-style: italic;
+            color: var(--text-whisper);
+            font-size: 0.95rem;
+        }
+
+        @media (max-width: 900px) {
+            .steps {
+                grid-template-columns: 1fr;
+                gap: 48px;
+            }
+
+            .spell-circle {
+                display: none;
+            }
         }
 
         @media (max-width: 768px) {
             .hero h1 {
-                font-size: 2.5rem;
-            }
-
-            .hero .tagline {
-                font-size: 1.25rem;
-            }
-
-            .hero .subtitle {
-                font-size: 1rem;
-            }
-
-            .install-options {
-                grid-template-columns: 1fr;
+                font-size: 3.5rem;
             }
 
             .header-content {
@@ -419,18 +865,56 @@
                 gap: 16px;
             }
 
-            nav a:first-child {
-                margin-left: 0;
+            nav {
+                gap: 20px;
             }
+
+            nav a {
+                font-size: 0.75rem;
+            }
+
+            .install-options {
+                grid-template-columns: 1fr;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 280px;
+                justify-content: center;
+            }
+        }
+
+        .glow-text {
+            animation: text-glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes text-glow {
+            from { text-shadow: 0 0 10px var(--purple-glow), 0 0 20px var(--purple-glow); }
+            to { text-shadow: 0 0 20px var(--purple-glow), 0 0 40px var(--purple-glow), 0 0 60px var(--purple-glow); }
         }
     </style>
 </head>
-<body>
-    <header>
+<body class="wand-cursor">
+    <div id="magic-particles"></div>
+
+    <header id="header">
         <div class="container">
             <div class="header-content">
                 <a href="/" class="logo">
-                    <div class="logo-icon">R</div>
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M7.5 5.6L5 7l1.4-2.5L5 2l2.5 1.4L10 2 8.6 4.5 10 7 7.5 5.6zm12 9.8L22 14l-1.4 2.5L22 19l-2.5-1.4L17 19l1.4-2.5L17 14l2.5 1.4zM22 2l-1.4 2.5L22 7l-2.5-1.4L17 7l1.4-2.5L17 2l2.5 1.4L22 2zm-8.66 10.78l2.44-2.44-2.12-2.12-2.44 2.44 2.12 2.12zm1.03-5.49l2.34 2.34c.39.37.39 1.02 0 1.41L5.04 22.71c-.39.39-1.04.39-1.41 0l-2.34-2.34c-.39-.39-.39-1.02 0-1.41L12.96 7.29c.39-.39 1.04-.39 1.41 0z"/>
+                        </svg>
+                    </div>
                     reducto
                 </a>
                 <nav>
@@ -445,73 +929,90 @@
 
     <main>
         <section class="hero">
+            <div class="hero-bg"></div>
+            <div class="hero-stars" id="stars"></div>
             <div class="container">
-                <h1>reducto</h1>
-                <p class="tagline">Semantic Code Compression Engine</p>
-                <p class="subtitle">Autonomously refactor codebases to reduce complexity and eliminate duplication while maintaining 100% functional parity.</p>
-                <div class="cta-buttons">
-                    <a href="#installation" class="btn btn-primary">Get Started</a>
-                    <a href="https://github.com/alexkarsten/reducto" class="btn btn-secondary">View on GitHub</a>
+                <div class="hero-content">
+                    <p class="spell-incantation">The Shrinking Charm</p>
+                    <h1>reducto</h1>
+                    <p class="tagline">Semantic Code Compression</p>
+                    <p class="subtitle">Magically transform bloated codebases into elegant, minimal expressions while preserving every ounce of functionality.</p>
+                    <div class="cta-buttons">
+                        <a href="#installation" class="btn btn-primary">
+                            <span>Cast the Spell</span>
+                        </a>
+                        <a href="https://github.com/alexkarsten/reducto" class="btn btn-secondary">
+                            <span>View Grimoire</span>
+                        </a>
+                    </div>
                 </div>
+            </div>
+            <div class="scroll-indicator">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14M19 12l-7 7-7-7"/>
+                </svg>
             </div>
         </section>
 
         <section id="features" class="features">
             <div class="container">
-                <h2 class="section-title">Features</h2>
+                <h2 class="section-title">Magical Abilities</h2>
+                <p class="section-subtitle">Ancient spells for modern codebases</p>
                 <div class="features-grid">
-                    <div class="feature-card">
-                        <div class="feature-icon">🔍</div>
-                        <h3>Cross-File Deduplication</h3>
-                        <p>Detect semantically similar code blocks across the entire repository using vector embeddings, even with different variable names.</p>
+                    <div class="feature-card" data-animate>
+                        <div class="feature-icon">🔮</div>
+                        <h3>Duplication Detection</h3>
+                        <p>Peer through the veil of your codebase to find semantically similar incantations across files, revealing hidden echoes and redundancies.</p>
                     </div>
-                    <div class="feature-card">
+                    <div class="feature-card" data-animate>
                         <div class="feature-icon">✨</div>
-                        <h3>Idiomatic Transformation</h3>
-                        <p>Transform verbose code into idiomatic patterns - Pythonic comprehensions, modern ES6+, Go idioms, and more.</p>
+                        <h3>Idiomatic Transmutation</h3>
+                        <p>Transform verbose rituals into elegant patterns—Pythonic comprehensions, modern ES6+, Go idioms, and more sacred traditions.</p>
                     </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">🏗️</div>
-                        <h3>Design Pattern Injection</h3>
-                        <p>Automatically suggest and apply standard design patterns like Factory, Strategy, and Observer to simplify complex logic.</p>
+                    <div class="feature-card" data-animate>
+                        <div class="feature-icon">📜</div>
+                        <h3>Pattern Infusion</h3>
+                        <p>Channel ancient wisdom by injecting classic design patterns—Factory, Strategy, Observer—to bring order to chaotic realms.</p>
                     </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">📊</div>
-                        <h3>Complexity Hotspots</h3>
-                        <p>Identify functions and modules exceeding complexity thresholds with cyclomatic and cognitive complexity metrics.</p>
+                    <div class="feature-card" data-animate>
+                        <div class="feature-icon">👁️</div>
+                        <h3>Complexity Scrying</h3>
+                        <p>Gaze into the depths of your code to identify functions exceeding cyclomatic and cognitive thresholds—chaos before it consumes you.</p>
                     </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">🔒</div>
-                        <h3>Git-Integrated Safety</h3>
-                        <p>Automatic checkpoints, rollback on test failure, and human-in-the-loop approval for every change.</p>
+                    <div class="feature-card" data-animate>
+                        <div class="feature-icon">🛡️</div>
+                        <h3>Protective Enchantments</h3>
+                        <p>Automatic checkpoints, rollback on test failure, and human approval for every change. Your code remains safe within the sanctuary.</p>
                     </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">🤖</div>
-                        <h3>Local-First AI</h3>
-                        <p>Flexible model routing with LiteLLM - use local models (Ollama) or cloud providers (OpenAI, Anthropic, Google).</p>
+                    <div class="feature-card" data-animate>
+                        <div class="feature-icon">⚡</div>
+                        <h3>Local-First Magic</h3>
+                        <p>Wield the power of local models through Ollama, or summon cloud familiars via OpenAI, Anthropic, and Google. Your secrets stay yours.</p>
                     </div>
                 </div>
             </div>
         </section>
 
         <section id="how-it-works" class="how-it-works">
+            <div class="spell-circle"></div>
             <div class="container">
-                <h2 class="section-title">How It Works</h2>
+                <h2 class="section-title">The Ritual</h2>
+                <p class="section-subtitle">Three sacred steps to code enlightenment</p>
                 <div class="steps">
-                    <div class="step">
-                        <div class="step-number">1</div>
+                    <div class="step" data-animate>
+                        <div class="step-number">I</div>
                         <h3>Scan</h3>
-                        <p>Analyze your codebase with Tree-sitter parsing to build a complete dependency graph and identify complexity hotspots.</p>
+                        <p>Peer into your codebase with Tree-sitter's ancient sight. Map the dependency web, identify complexity hotspots, and reveal hidden truths.</p>
                     </div>
-                    <div class="step">
-                        <div class="step-number">2</div>
+                    <div class="step" data-animate>
+                        <div class="step-number">II</div>
                         <h3>Plan</h3>
-                        <p>LLM-powered agents generate detailed refactoring plans with diffs, showing exactly what will change and why.</p>
+                        <p>Consult the oracle—LLM-powered agents divine detailed refactoring plans, showing exactly what shall transform and the reasoning behind each change.</p>
                     </div>
-                    <div class="step">
-                        <div class="step-number">3</div>
+                    <div class="step" data-animate>
+                        <div class="step-number">III</div>
                         <h3>Apply</h3>
-                        <p>Execute changes safely with automatic test validation, git checkpoints, and instant rollback on failure.</p>
+                        <p>Execute the transformation with sacred protections—automatic test validation, git checkpoints, and instant restoration if the ritual fails.</p>
                     </div>
                 </div>
             </div>
@@ -519,33 +1020,34 @@
 
         <section id="installation" class="installation">
             <div class="container">
-                <h2 class="section-title">Installation</h2>
+                <h2 class="section-title">Acquire the Wand</h2>
+                <p class="section-subtitle">Begin your journey into code alchemy</p>
                 <div class="install-options">
-                    <div class="install-card">
+                    <div class="install-card" data-animate>
                         <h3>
-                            <span>📦 Download Binary</span>
+                            <span>Download Artifact</span>
                             <span class="badge">Recommended</span>
                         </h3>
-                        <p style="color: var(--text-secondary); margin-bottom: 16px;">Download the latest release for your platform:</p>
-                        <pre><code class="code-comment"># Download from GitHub Releases</code>
+                        <p>Claim the latest enchanted binary for your realm:</p>
+                        <pre><code><span class="code-comment"># Summon from the ethereal repository</span>
 <span class="code-command">curl -sSL https://github.com/alexkarsten/reducto/releases/latest/download/reducto-linux-amd64 -o reducto</span>
 <span class="code-command">chmod +x reducto</span>
 <span class="code-command">sudo mv reducto /usr/local/bin/</span></code></pre>
                         <p style="margin-top: 16px;">
-                            <a href="https://github.com/alexkarsten/reducto/releases">View all releases →</a>
+                            <a href="https://github.com/alexkarsten/reducto/releases">Browse all artifacts →</a>
                         </p>
                     </div>
-                    <div class="install-card">
-                        <h3>🔧 Build from Source</h3>
-                        <p style="color: var(--text-secondary); margin-bottom: 16px;">Requires Go 1.21+ and Python 3.10+:</p>
-                        <pre><code class="code-comment"># Clone the repository</code>
+                    <div class="install-card" data-animate>
+                        <h3>Forge from Source</h3>
+                        <p>Requires Go 1.24+ and Python 3.10+ for the complete ritual:</p>
+                        <pre><code><span class="code-comment"># Clone the sacred texts</span>
 <span class="code-command">git clone https://github.com/alexkarsten/reducto.git</span>
 <span class="code-command">cd reducto</span>
 
-<span class="code-comment"># Install Python dependencies</span>
-<span class="code-command">pip install -r python/requirements.txt</span>
+<span class="code-comment"># Prepare the reagents</span>
+<span class="code-command">pip install python/</span>
 
-<span class="code-comment"># Build the binary</span>
+<span class="code-comment"># Conjure the binary</span>
 <span class="code-command">go build -o reducto ./cmd/reducto</span></code></pre>
                     </div>
                 </div>
@@ -554,8 +1056,9 @@
 
         <section class="demo">
             <div class="container">
-                <h2 class="section-title">Quick Start</h2>
-                <div class="terminal">
+                <h2 class="section-title">Witness the Magic</h2>
+                <p class="section-subtitle">A glimpse into the art of reduction</p>
+                <div class="terminal" data-animate>
                     <div class="terminal-header">
                         <div class="terminal-dot red"></div>
                         <div class="terminal-dot yellow"></div>
@@ -563,28 +1066,28 @@
                     </div>
                     <div class="terminal-body">
                         <p><span class="terminal-prompt">$</span> reducto analyze .</p>
-                        <p class="code-output">Analyzing repository: /home/user/my-project</p>
+                        <p class="terminal-output">Scrying repository: /home/wizard/project</p>
                         <br>
-                        <p class="code-output">=== Analysis Results ===</p>
-                        <p class="code-output">Total files: 127</p>
-                        <p class="code-output">Total symbols: 892</p>
-                        <p class="code-output">Complexity hotspots: 8</p>
-                        <p class="code-output">Potential duplicates: 4</p>
+                        <p class="terminal-output"><span class="terminal-highlight">=== Revelation ===</span></p>
+                        <p class="terminal-output">Total scrolls: <span class="terminal-highlight">127</span></p>
+                        <p class="terminal-output">Total symbols: <span class="terminal-highlight">892</span></p>
+                        <p class="terminal-output">Complexity hotspots: <span class="terminal-highlight">8</span></p>
+                        <p class="terminal-output">Potential echoes: <span class="terminal-highlight">4</span></p>
                         <br>
-                        <p class="code-output">--- Complexity Hotspots ---</p>
-                        <p class="code-output">  src/utils/parser.py:142 - parse_config (CC: 18)</p>
-                        <p class="code-output">  src/api/handler.go:67 - HandleRequest (CC: 15)</p>
+                        <p class="terminal-output"><span class="terminal-highlight">--- Chaos Detected ---</span></p>
+                        <p class="terminal-output">  src/utils/parser.py:142 - parse_config (CC: 18)</p>
+                        <p class="terminal-output">  src/api/handler.go:67 - HandleRequest (CC: 15)</p>
                         <br>
-                        <p class="code-output">--- Potential Duplicates ---</p>
-                        <p class="code-output">  Similarity: 94.2%</p>
-                        <p class="code-output">    - src/auth/validator.py:23-45</p>
-                        <p class="code-output">    - src/api/validator.py:12-34</p>
+                        <p class="terminal-output"><span class="terminal-highlight">--- Echoes Found ---</span></p>
+                        <p class="terminal-output">  Similarity: <span class="terminal-success">94.2%</span></p>
+                        <p class="terminal-output">    - src/auth/validator.py:23-45</p>
+                        <p class="terminal-output">    - src/api/validator.py:12-34</p>
                         <br>
                         <p><span class="terminal-prompt">$</span> reducto deduplicate --commit .</p>
-                        <p class="code-output">Running deduplication...</p>
-                        <p class="code-output">Refactoring completed successfully!</p>
-                        <p class="code-output">LOC reduced: 127</p>
-                        <p class="code-output">Changes committed to git.</p>
+                        <p class="terminal-output">Weaving reduction spell...</p>
+                        <p class="terminal-output"><span class="terminal-success">Transformation complete!</span></p>
+                        <p class="terminal-output">Lines consumed: <span class="terminal-success">127</span></p>
+                        <p class="terminal-output">Changes inscribed to git.</p>
                     </div>
                 </div>
             </div>
@@ -594,13 +1097,113 @@
 
     <footer>
         <div class="container">
+            <div class="footer-logo">reducto</div>
             <div class="footer-links">
                 <a href="https://github.com/alexkarsten/reducto">GitHub</a>
                 <a href="https://github.com/alexkarsten/reducto/blob/main/LICENSE">MIT License</a>
                 <a href="https://github.com/alexkarsten/reducto/issues">Report Issue</a>
             </div>
-            <p class="footer-copyright">© 2026 Alex Karsten. Released under the MIT License.</p>
+            <p class="footer-copyright">2026 Alex Karsten. Released under the MIT License.</p>
+            <p class="footer-quote">"It is not our abilities that show what we truly are... it is our choices."</p>
         </div>
     </footer>
+
+    <script>
+        (function() {
+            const particleContainer = document.getElementById('magic-particles');
+            const particleCount = 30;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 4 + 's';
+                particle.style.animationDuration = (3 + Math.random() * 3) + 's';
+                if (Math.random() > 0.5) {
+                    particle.style.background = 'var(--purple-glow)';
+                    particle.style.boxShadow = '0 0 6px var(--purple-glow), 0 0 12px var(--purple-glow)';
+                }
+                particleContainer.appendChild(particle);
+            }
+
+            const starsContainer = document.getElementById('stars');
+            const starCount = 80;
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                star.style.animationDuration = (2 + Math.random() * 2) + 's';
+                starsContainer.appendChild(star);
+            }
+
+            const header = document.getElementById('header');
+            let lastScroll = 0;
+
+            window.addEventListener('scroll', function() {
+                const currentScroll = window.pageYOffset;
+                if (currentScroll > 50) {
+                    header.classList.add('scrolled');
+                } else {
+                    header.classList.remove('scrolled');
+                }
+                lastScroll = currentScroll;
+            });
+
+            const animatedElements = document.querySelectorAll('[data-animate]');
+            
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.15
+            };
+
+            const observer = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry, index) {
+                    if (entry.isIntersecting) {
+                        const delay = Array.from(animatedElements).indexOf(entry.target) % 6;
+                        setTimeout(function() {
+                            entry.target.classList.add('visible');
+                        }, delay * 100);
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, observerOptions);
+
+            animatedElements.forEach(function(el) {
+                observer.observe(el);
+            });
+
+            document.querySelectorAll('a[href^="#"]').forEach(function(anchor) {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (Math.random() > 0.96) {
+                    const sparkle = document.createElement('div');
+                    sparkle.className = 'particle';
+                    sparkle.style.left = e.clientX + 'px';
+                    sparkle.style.top = e.clientY + 'px';
+                    sparkle.style.position = 'fixed';
+                    sparkle.style.pointerEvents = 'none';
+                    document.body.appendChild(sparkle);
+                    setTimeout(function() {
+                        sparkle.remove();
+                    }, 4000);
+                }
+            });
+        })();
+    </script>
 </body>
 </html>
