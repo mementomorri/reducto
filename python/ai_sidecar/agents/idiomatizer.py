@@ -85,12 +85,6 @@ class IdiomatizerAgent:
         if self._is_for_append_pattern(lines, idx):
             return self._convert_to_list_comp(lines, idx)
 
-        if self._is_dict_init_pattern(stripped):
-            return self._suggest_dict_comp(stripped)
-
-        if self._is_string_concat_pattern(lines, idx):
-            return self._suggest_fstring(lines, idx)
-
         return None
 
     def _is_for_append_pattern(self, lines: List[str], idx: int) -> bool:
@@ -131,19 +125,6 @@ class IdiomatizerAgent:
 
         original = f"{for_line}\n{append_line}"
         return (original, list_comp, "Convert for-loop with append to list comprehension")
-
-    def _is_dict_init_pattern(self, line: str) -> bool:
-        return "= {}" in line and "if " not in line
-
-    def _suggest_dict_comp(self, line: str) -> Optional[tuple]:
-        return None
-
-    def _is_string_concat_pattern(self, lines: List[str], idx: int) -> bool:
-        line = lines[idx]
-        return '"' in line or "'" in line and "+" in line
-
-    def _suggest_fstring(self, lines: List[str], idx: int) -> Optional[tuple]:
-        return None
 
     def _idiomatize_js(
         self,

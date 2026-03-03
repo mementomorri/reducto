@@ -266,9 +266,31 @@ func (s *Server) extractSymbols(content, path string, lang models.Language) []mo
 func (s *Server) extractPythonSymbols(lines []string, path string) []models.Symbol {
 	var symbols []models.Symbol
 	var currentClass string
+	var classIndent int = -1
 
 	for i, line := range lines {
 		stripped := strings.TrimSpace(line)
+		if stripped == "" {
+			continue
+		}
+
+		currentIndent := len(line) - len(strings.TrimLeft(line, " \t"))
+
+		if strings.HasPrefix(stripped, "class ") {
+			name := s.extractClassName(stripped)
+			currentClass = name
+			classIndent = currentIndent
+			symbols = append(symbols, models.Symbol{
+				Name:      name,
+				Type:      "class",
+				File:      path,
+				StartLine: i + 1,
+				EndLine:   s.findPythonBlockEnd(lines, i),
+			})
+		} else if currentClass != "" && currentIndent <= classIndent && !strings.HasPrefix(stripped, "#") {
+			currentClass = ""
+			classIndent = -1
+		}
 
 		if strings.HasPrefix(stripped, "def ") || strings.HasPrefix(stripped, "async def ") {
 			name := s.extractFunctionName(stripped)
@@ -283,21 +305,6 @@ func (s *Server) extractPythonSymbols(lines []string, path string) []models.Symb
 				StartLine: i + 1,
 				EndLine:   s.findPythonBlockEnd(lines, i),
 			})
-		} else if strings.HasPrefix(stripped, "class ") {
-			name := s.extractClassName(stripped)
-			currentClass = name
-			symbols = append(symbols, models.Symbol{
-				Name:      name,
-				Type:      "class",
-				File:      path,
-				StartLine: i + 1,
-				EndLine:   s.findPythonBlockEnd(lines, i),
-			})
-		} else if stripped != "" && !strings.HasPrefix(stripped, "#") && !strings.HasPrefix(stripped, "@") {
-			if strings.HasPrefix(line, "    ") || strings.HasPrefix(line, "\t") {
-			} else {
-				currentClass = ""
-			}
 		}
 	}
 

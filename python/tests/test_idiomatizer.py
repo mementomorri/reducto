@@ -79,22 +79,6 @@ class TestIdiomatizerAgent:
         result = agent._is_for_append_pattern(lines, 1)
         assert result is False
 
-    def test_is_dict_init_pattern_true(self, agent):
-        assert agent._is_dict_init_pattern("result = {}") is True
-        assert agent._is_dict_init_pattern("data = {}") is True
-
-    def test_is_dict_init_pattern_false(self, agent):
-        assert agent._is_dict_init_pattern("if x:") is False
-        assert agent._is_dict_init_pattern("result = []") is False
-
-    def test_is_string_concat_pattern_true(self, agent):
-        lines = ['message = "Hello, " + name + "!"']
-        assert agent._is_string_concat_pattern(lines, 0) is True
-
-    def test_is_string_concat_pattern_false(self, agent):
-        lines = ["x = 1 + 2"]
-        assert agent._is_string_concat_pattern(lines, 0) is False
-
     def test_idiomatize_python_for_append(self, agent):
         content = '''result = []
 for x in items:

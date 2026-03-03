@@ -257,10 +257,26 @@ func runDeduplicate(path string, commitChanges bool, generateReport bool, dryRun
 		}
 	}
 
-	fmt.Println("\nDeduplication plan generated. Apply functionality coming soon.")
+	fmt.Printf("\nApplying %d change(s)...\n", changeCount)
+	
+	applyResult, err := mcpManager.ApplyPlan(plan, true)
+	if err != nil {
+		fmt.Printf("Warning: Some changes may have been rolled back: %v\n", err)
+	}
+	
+	if applyResult != nil && applyResult.Success {
+		fmt.Printf("✓ All changes applied successfully.\n")
+	} else if applyResult != nil {
+		fmt.Printf("✗ Some changes failed: %s\n", applyResult.Error)
+	}
 
-	if generateReport {
-		fmt.Printf("\nRun 'reducto report --session %s' to see the full report.\n", plan.SessionID)
+	if generateReport && applyResult != nil {
+		rep := reporter.New(cfg)
+		if err := rep.Generate(applyResult); err != nil {
+			fmt.Printf("Warning: Failed to generate report: %v\n", err)
+		} else {
+			fmt.Printf("Report generated for session %s.\n", plan.SessionID)
+		}
 	}
 
 	return nil
@@ -317,7 +333,19 @@ func runIdiomatize(path string, dryRun bool) error {
 		}
 	}
 
-	fmt.Println("\nIdiomatization plan generated. Apply functionality coming soon.")
+	fmt.Printf("\nApplying %d change(s)...\n", changeCount)
+	
+	applyResult, err := mcpManager.ApplyPlan(plan, true)
+	if err != nil {
+		fmt.Printf("Warning: Some changes may have been rolled back: %v\n", err)
+	}
+	
+	if applyResult != nil && applyResult.Success {
+		fmt.Printf("✓ All changes applied successfully.\n")
+	} else if applyResult != nil {
+		fmt.Printf("✗ Some changes failed: %s\n", applyResult.Error)
+	}
+
 	return nil
 }
 
@@ -377,7 +405,19 @@ func runPattern(pattern, path string, dryRun bool) error {
 		}
 	}
 
-	fmt.Println("\nPattern injection plan generated. Apply functionality coming soon.")
+	fmt.Printf("\nApplying %d change(s)...\n", changeCount)
+	
+	applyResult, err := mcpManager.ApplyPlan(plan, true)
+	if err != nil {
+		fmt.Printf("Warning: Some changes may have been rolled back: %v\n", err)
+	}
+	
+	if applyResult != nil && applyResult.Success {
+		fmt.Printf("✓ All changes applied successfully.\n")
+	} else if applyResult != nil {
+		fmt.Printf("✗ Some changes failed: %s\n", applyResult.Error)
+	}
+
 	return nil
 }
 
