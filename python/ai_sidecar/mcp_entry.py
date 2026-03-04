@@ -26,6 +26,7 @@ from ai_sidecar.agents import (
 )
 from ai_sidecar.embeddings import EmbeddingService
 from ai_sidecar.llm import LLMRouter
+from ai_sidecar.session import SessionStore
 from ai_sidecar.models import (
     AnalyzeRequest,
     AnalyzeResult,
@@ -55,6 +56,7 @@ class MCPSidecar:
         self.mcp: Optional[MCPClient] = None
         self.embedding_service: Optional[EmbeddingService] = None
         self.llm_router: Optional[LLMRouter] = None
+        self.session_store: Optional[SessionStore] = None
         self.analyzer: Optional[AnalyzerAgent] = None
         self.deduplicator: Optional[DeduplicatorAgent] = None
         self.idiomatizer: Optional[IdiomatizerAgent] = None
@@ -69,7 +71,7 @@ class MCPSidecar:
 
     async def initialize(self, root_dir: str):
         self.root_dir = root_dir
-        
+
         self.mcp = MCPClient()
         await self.mcp.connect()
 
@@ -79,17 +81,31 @@ class MCPSidecar:
         await self.embedding_service.initialize(verbose=self.verbose)
 
         self.llm_router = LLMRouter(verbose=self.verbose, model_override=self.model, prefer_local=self.prefer_local)
+        
+        # Initialize session store
+        self.session_store = SessionStore()
 
         self.analyzer = AnalyzerAgent(llm_router=self.llm_router, mcp_client=self.mcp)
         self.deduplicator = DeduplicatorAgent(
-            self.embedding_service, llm_router=self.llm_router, mcp_client=self.mcp
+            self.embedding_service,
+            llm_router=self.llm_router,
+            mcp_client=self.mcp,
+            session_store=self.session_store,
         )
-        self.idiomatizer = IdiomatizerAgent(llm_router=self.llm_router, mcp_client=self.mcp)
-        self.pattern_agent = PatternAgent(llm_router=self.llm_router, mcp_client=self.mcp)
+        self.idiomatizer = IdiomatizerAgent(
+            llm_router=self.llm_router,
+            mcp_client=self.mcp,
+            session_store=self.session_store,
+        )
+        self.pattern_agent = PatternAgent(
+            llm_router=self.llm_router,
+            mcp_client=self.mcp,
+            session_store=self.session_store,
+        )
         self.validator = ValidatorAgent(mcp_client=self.mcp)
         self.validator.set_agents(self.deduplicator, self.idiomatizer, self.pattern_agent)
         self.quality_checker = QualityCheckerAgent(mcp_client=self.mcp)
-        
+
         if self.verbose:
             logger.info(f"Sidecar initialized: model_override={self.model}, prefer_local={self.prefer_local}")
 

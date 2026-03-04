@@ -17,13 +17,21 @@ from ai_sidecar.models import (
     FileInfo,
 )
 from ai_sidecar.embeddings import EmbeddingService
+from ai_sidecar.session import SessionStore
 
 
 class DeduplicatorAgent:
-    def __init__(self, embedding_service: EmbeddingService, llm_router=None, mcp_client=None):
+    def __init__(
+        self,
+        embedding_service: EmbeddingService,
+        llm_router=None,
+        mcp_client=None,
+        session_store: Optional[SessionStore] = None,
+    ):
         self.embedding_service = embedding_service
         self.llm = llm_router
         self.mcp = mcp_client
+        self.session_store = session_store or SessionStore()
         self._session_plans: Dict[str, RefactorPlan] = {}
 
     async def find_duplicates(self, request: DeduplicateRequest) -> RefactorPlan:
@@ -49,7 +57,10 @@ class DeduplicatorAgent:
                        f"Proposed {len(changes)} refactoring changes.",
         )
 
+        # Save to both memory and disk
         self._session_plans[session_id] = plan
+        self.session_store.save_plan(plan, command_type="deduplicate")
+        
         return plan
 
     async def _extract_blocks(self, files: List[FileInfo]) -> List[CodeBlock]:
@@ -314,4 +325,9 @@ class DeduplicatorAgent:
         return "\n".join(dedented)
 
     def get_plan(self, session_id: str) -> Optional[RefactorPlan]:
-        return self._session_plans.get(session_id)
+        # Check memory first
+        if session_id in self._session_plans:
+            return self._session_plans[session_id]
+        
+        # Fall back to disk
+        return self.session_store.load_plan(session_id)

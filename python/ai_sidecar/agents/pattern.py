@@ -12,12 +12,14 @@ from ai_sidecar.models import (
     Language,
     ModelTier,
 )
+from ai_sidecar.session import SessionStore
 
 
 class PatternAgent:
-    def __init__(self, llm_router=None, mcp_client=None):
+    def __init__(self, llm_router=None, mcp_client=None, session_store: Optional[SessionStore] = None):
         self.llm = llm_router
         self.mcp = mcp_client
+        self.session_store = session_store or SessionStore()
         self._session_plans: Dict[str, RefactorPlan] = {}
 
     async def apply_pattern(self, request: PatternRequest) -> RefactorPlan:
@@ -42,7 +44,10 @@ class PatternAgent:
             pattern=pattern if pattern else "auto-detect",
         )
 
+        # Save to both memory and disk
         self._session_plans[session_id] = plan
+        self.session_store.save_plan(plan, command_type="pattern")
+        
         return plan
 
     async def _apply_design_pattern(
@@ -323,4 +328,9 @@ class Singleton:
 '''
 
     def get_plan(self, session_id: str) -> Optional[RefactorPlan]:
-        return self._session_plans.get(session_id)
+        # Check memory first
+        if session_id in self._session_plans:
+            return self._session_plans[session_id]
+        
+        # Fall back to disk
+        return self.session_store.load_plan(session_id)
