@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -515,24 +516,72 @@ func runCheck(path string) error {
 
 func runSessionsList(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Listing stored sessions...\n")
-	// For now, show placeholder - full implementation requires MCP session tools
-	fmt.Printf("Session management coming soon.\n")
-	fmt.Printf("Sessions are stored in: .reducto/sessions/\n")
+	
+	mcpManager = sidecar.NewMCPManager(".", cfg)
+	sessions, err := mcpManager.ListSessions()
+	if err != nil {
+		return fmt.Errorf("failed to list sessions: %w", err)
+	}
+	
+	if len(sessions) == 0 {
+		fmt.Printf("No stored sessions found.\n")
+		fmt.Printf("Sessions are stored in: .reducto/sessions/\n")
+		return nil
+	}
+	
+	fmt.Printf("Found %d session(s):\n\n", len(sessions))
+	fmt.Printf("%-40s %-15s %-10s %-10s %s\n", "Session ID", "Command", "Files", "Changes", "Created")
+	fmt.Printf("%s\n", strings.Repeat("-", 100))
+	
+	for _, s := range sessions {
+		sessionID, _ := s["session_id"].(string)
+		commandType, _ := s["command_type"].(string)
+		fileCount, _ := s["file_count"].(float64)
+		changeCount, _ := s["change_count"].(float64)
+		createdAt, _ := s["created_at"].(string)
+		
+		fmt.Printf("%-40s %-15s %-10.0f %-10.0f %s\n", 
+			sessionID[:min(40, len(sessionID))], 
+			commandType, 
+			fileCount, 
+			changeCount,
+			createdAt[:min(19, len(createdAt))])
+	}
+	
 	return nil
 }
 
 func runSessionsShow(cmd *cobra.Command, args []string) error {
 	sessionID := args[0]
-	fmt.Printf("Showing session: %s\n", sessionID)
-	// For now, show placeholder - full implementation requires MCP session tools
-	fmt.Printf("Session details coming soon.\n")
+	fmt.Printf("Showing session: %s\n\n", sessionID)
+	
+	mcpManager = sidecar.NewMCPManager(".", cfg)
+	plan, err := mcpManager.GetSession(sessionID)
+	if err != nil {
+		return fmt.Errorf("failed to get session: %w", err)
+	}
+	
+	if plan == nil {
+		return fmt.Errorf("session not found: %s", sessionID)
+	}
+	
+	fmt.Printf("Description: %s\n", plan.Description)
+	fmt.Printf("Pattern: %s\n", plan.Pattern)
+	fmt.Printf("Changes: %d\n\n", len(plan.Changes))
+	
+	for i, change := range plan.Changes {
+		fmt.Printf("%d. %s\n", i+1, change.Path)
+		fmt.Printf("   %s\n\n", change.Description)
+	}
+	
 	return nil
 }
 
 func runSessionsCleanup(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Cleaning up old sessions...\n")
-	// For now, show placeholder - full implementation requires MCP session tools
-	fmt.Printf("Session cleanup coming soon.\n")
+	
+	// For now, just show a message - full implementation would call MCP
+	fmt.Printf("Session cleanup coming soon. Sessions are stored in: .reducto/sessions/\n")
 	return nil
 }
 
@@ -767,6 +816,13 @@ func initCommands() {
 	sessionsCmd.AddCommand(sessionsShowCmd)
 	sessionsCmd.AddCommand(sessionsCleanupCmd)
 	rootCmd.AddCommand(sessionsCmd)
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func init() {

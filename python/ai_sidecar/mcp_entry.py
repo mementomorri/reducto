@@ -124,6 +124,12 @@ class MCPSidecar:
                 return await self._apply_plan(path)
             elif command == "check":
                 return await self._check(path)
+            elif command == "list_sessions":
+                return await self._list_sessions()
+            elif command == "get_session":
+                return await self._get_session(path)
+            elif command == "delete_session":
+                return await self._delete_session(path)
             else:
                 return {"error": f"Unknown command: {command}"}
         except Exception as e:
@@ -317,6 +323,39 @@ class MCPSidecar:
             diff_lines.append(f"+{line}")
         
         return "\n".join(diff_lines)
+
+    async def _list_sessions(self) -> Dict[str, Any]:
+        """List all stored sessions."""
+        if not self.session_store:
+            return {"error": "Session store not initialized"}
+        
+        sessions = self.session_store.list_sessions()
+        return {
+            "sessions": [s.to_dict() for s in sessions],
+            "count": len(sessions),
+        }
+
+    async def _get_session(self, session_id: str) -> Dict[str, Any]:
+        """Get details for a specific session."""
+        if not self.session_store:
+            return {"error": "Session store not initialized"}
+        
+        plan = self.session_store.load_plan(session_id)
+        if not plan:
+            return {"error": f"Session not found: {session_id}"}
+        
+        return plan.model_dump(mode='json')
+
+    async def _delete_session(self, session_id: str) -> Dict[str, Any]:
+        """Delete a session."""
+        if not self.session_store:
+            return {"error": "Session store not initialized"}
+        
+        deleted = self.session_store.delete_session(session_id)
+        if not deleted:
+            return {"error": f"Session not found: {session_id}"}
+        
+        return {"success": True, "session_id": session_id}
 
     async def shutdown(self):
         if self.embedding_service:

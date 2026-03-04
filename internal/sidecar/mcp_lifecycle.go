@@ -576,6 +576,24 @@ func (m *MCPManager) checkPythonInstalled() error {
 	return nil
 }
 
+func (m *MCPManager) ListSessions() ([]map[string]interface{}, error) {
+	// Session listing is handled by Python sidecar
+	// For now, return empty list - full implementation requires MCP call
+	return []map[string]interface{}{}, nil
+}
+
+func (m *MCPManager) GetSession(sessionID string) (*models.RefactorPlan, error) {
+	// Session retrieval is handled by Python sidecar
+	// For now, return nil - full implementation requires MCP call
+	return nil, fmt.Errorf("session retrieval not yet implemented")
+}
+
+func (m *MCPManager) DeleteSession(sessionID string) error {
+	// Session deletion is handled by Python sidecar
+	// For now, return error - full implementation requires MCP call
+	return fmt.Errorf("session deletion not yet implemented")
+}
+
 func (m *MCPManager) IsRunning() bool {
 	if m.process == nil {
 		return false

@@ -171,6 +171,9 @@ func (s *Server) getHandler(method string) (HandlerFunc, bool) {
 		"git_rollback":    s.handleGitRollback,
 		"list_files":      s.handleListFiles,
 		"get_complexity":  s.handleGetComplexity,
+		"list_sessions":   s.handleListSessions,
+		"get_session":     s.handleGetSession,
+		"delete_session":  s.handleDeleteSession,
 	}
 	h, ok := handlers[method]
 	return h, ok
@@ -183,7 +186,7 @@ func (s *Server) handleInitialize(ctx context.Context, params json.RawMessage) (
 		"tools": []string{
 			"read_file", "get_symbols", "get_ast", "find_references",
 			"apply_diff", "apply_diff_safe", "run_tests", "git_checkpoint", "git_rollback",
-			"list_files", "get_complexity",
+			"list_files", "get_complexity", "list_sessions", "get_session", "delete_session",
 		},
 	}, nil
 }
@@ -870,6 +873,46 @@ func (s *Server) calculateComplexity(content string) models.ComplexityMetrics {
 	}
 
 	return metrics
+}
+
+func (s *Server) handleListSessions(ctx context.Context, params json.RawMessage) (interface{}, error) {
+	// Session management is handled by Python sidecar
+	// This is a placeholder that returns empty list
+	// Python sidecar should implement actual session listing
+	return map[string]interface{}{
+		"sessions": []interface{}{},
+		"message":  "Session listing not yet implemented in Go - use Python sidecar",
+	}, nil
+}
+
+func (s *Server) handleGetSession(ctx context.Context, params json.RawMessage) (interface{}, error) {
+	var input struct {
+		SessionID string `json:"session_id"`
+	}
+	if err := json.Unmarshal(params, &input); err != nil {
+		return nil, NewError(InvalidParams, "Invalid params", err.Error())
+	}
+
+	// Session management is handled by Python sidecar
+	// This is a placeholder
+	return map[string]interface{}{
+		"error": "Session retrieval not yet implemented in Go - use Python sidecar",
+	}, nil
+}
+
+func (s *Server) handleDeleteSession(ctx context.Context, params json.RawMessage) (interface{}, error) {
+	var input struct {
+		SessionID string `json:"session_id"`
+	}
+	if err := json.Unmarshal(params, &input); err != nil {
+		return nil, NewError(InvalidParams, "Invalid params", err.Error())
+	}
+
+	// Session management is handled by Python sidecar
+	// This is a placeholder
+	return map[string]interface{}{
+		"error": "Session deletion not yet implemented in Go - use Python sidecar",
+	}, nil
 }
 
 func (s *Server) Shutdown() {
