@@ -153,181 +153,25 @@ class AnalyzerAgent:
         path: str,
         language: Language,
     ) -> List[Symbol]:
-        symbols = []
-        lines = content.split("\n")
-
-        if language == Language.PYTHON:
-            symbols = self._parse_python_symbols(lines, path)
-        elif language in (Language.JAVASCRIPT, Language.TYPESCRIPT):
-            symbols = self._parse_js_symbols(lines, path)
-        elif language == Language.GO:
-            symbols = self._parse_go_symbols(lines, path)
-
-        return symbols
-
-    def _parse_python_symbols(self, lines: List[str], path: str) -> List[Symbol]:
-        symbols = []
-        current_class = None
-
-        for i, line in enumerate(lines):
-            stripped = line.strip()
-
-            if stripped.startswith("def "):
-                name = self._extract_function_name(stripped[4:])
-                symbols.append(Symbol(
-                    name=name,
-                    type="method" if current_class else "function",
-                    file=path,
-                    start_line=i + 1,
-                    end_line=self._find_function_end(lines, i),
-                    signature=self._extract_signature(stripped),
-                ))
-
-            elif stripped.startswith("class "):
-                name = self._extract_class_name(stripped[6:])
-                current_class = name
-                symbols.append(Symbol(
-                    name=name,
-                    type="class",
-                    file=path,
-                    start_line=i + 1,
-                    end_line=self._find_class_end(lines, i),
-                ))
-
-            elif stripped.startswith(("def ", "async def ")):
-                pass
-
-        return symbols
-
-    def _parse_js_symbols(self, lines: List[str], path: str) -> List[Symbol]:
-        symbols = []
-
-        for i, line in enumerate(lines):
-            stripped = line.strip()
-
-            if "function " in stripped:
-                name = self._extract_js_function_name(stripped)
-                if name:
-                    symbols.append(Symbol(
-                        name=name,
-                        type="function",
-                        file=path,
-                        start_line=i + 1,
-                        end_line=self._find_js_function_end(lines, i),
-                    ))
-
-            elif stripped.startswith("class "):
-                name = self._extract_class_name(stripped[6:])
-                symbols.append(Symbol(
-                    name=name,
-                    type="class",
-                    file=path,
-                    start_line=i + 1,
-                    end_line=self._find_class_end(lines, i),
-                ))
-
-        return symbols
-
-    def _parse_go_symbols(self, lines: List[str], path: str) -> List[Symbol]:
-        symbols = []
-
-        for i, line in enumerate(lines):
-            stripped = line.strip()
-
-            if stripped.startswith("func "):
-                name = self._extract_go_function_name(stripped[5:])
-                symbols.append(Symbol(
-                    name=name,
-                    type="function",
-                    file=path,
-                    start_line=i + 1,
-                    end_line=self._find_function_end(lines, i),
-                    signature=self._extract_go_signature(stripped),
-                ))
-
-            elif stripped.startswith("type ") and " struct" in stripped:
-                name = stripped[5:].split(" struct")[0]
-                symbols.append(Symbol(
-                    name=name,
-                    type="struct",
-                    file=path,
-                    start_line=i + 1,
-                    end_line=self._find_struct_end(lines, i),
-                ))
-
-        return symbols
-
-    def _extract_function_name(self, decl: str) -> str:
-        paren_idx = decl.find("(")
-        if paren_idx > 0:
-            return decl[:paren_idx].strip()
-        return decl.split()[0] if decl else "unknown"
-
-    def _extract_class_name(self, decl: str) -> str:
-        for char in "(:[{":
-            idx = decl.find(char)
-            if idx > 0:
-                return decl[:idx].strip()
-        return decl.strip()
-
-    def _extract_signature(self, line: str) -> str:
-        paren_idx = line.find("(")
-        if paren_idx >= 0:
-            end_idx = line.rfind(")")
-            if end_idx > paren_idx:
-                return line[paren_idx:end_idx + 1]
-        return ""
-
-    def _extract_js_function_name(self, line: str) -> Optional[str]:
-        import re
-        patterns = [
-            r"function\s+(\w+)",
-            r"(\w+)\s*=\s*(?:async\s*)?function",
-            r"(\w+)\s*:\s*(?:async\s*)?function",
-            r"const\s+(\w+)\s*=\s*(?:async\s*)?\(",
+        """Parse symbols using Go MCP Tree-sitter parser."""
+        if not self.mcp:
+            return []
+        
+        # Call Go MCP tool for Tree-sitter based symbol extraction
+        result = await self.mcp.get_symbols(path, content)
+        symbols_data = result.get("symbols", [])
+        
+        return [
+            Symbol(
+                name=s["name"],
+                type=s["type"],
+                file=s["file"],
+                start_line=s["start_line"],
+                end_line=s["end_line"],
+                signature=s.get("signature", ""),
+            )
+            for s in symbols_data
         ]
-
-        for pattern in patterns:
-            match = re.search(pattern, line)
-            if match:
-                return match.group(1)
-        return None
-
-    def _extract_go_function_name(self, decl: str) -> str:
-        if decl.startswith("("):
-            paren_end = decl.find(")")
-            if paren_end > 0:
-                return decl[paren_end + 1:].split("(")[0].strip()
-        return decl.split("(")[0].strip()
-
-    def _extract_go_signature(self, line: str) -> str:
-        import re
-        match = re.search(r"\([^)]*\)", line)
-        if match:
-            return match.group(0)
-        return ""
-
-    def _find_function_end(self, lines: List[str], start: int) -> int:
-        indent = len(lines[start]) - len(lines[start].lstrip())
-        for i in range(start + 1, len(lines)):
-            if lines[i].strip() and not lines[i].startswith(" " * (indent + 1)):
-                if not lines[i].strip().startswith(("#", "//", "/*", "*")):
-                    return i
-        return len(lines)
-
-    def _find_class_end(self, lines: List[str], start: int) -> int:
-        return self._find_function_end(lines, start)
-
-    def _find_js_function_end(self, lines: List[str], start: int) -> int:
-        brace_count = 0
-        for i in range(start, len(lines)):
-            brace_count += lines[i].count("{") - lines[i].count("}")
-            if brace_count == 0 and i > start:
-                return i + 1
-        return len(lines)
-
-    def _find_struct_end(self, lines: List[str], start: int) -> int:
-        return self._find_js_function_end(lines, start)
 
     async def _find_hotspots(
         self,
@@ -411,6 +255,39 @@ class AnalyzerAgent:
                 nesting = max(0, nesting - 1)
 
         return complexity
+
+    async def calculate_lmcc(self, code: str, language: Language) -> ComplexityMetrics:
+        """Calculate LM-CC (LLM-perceived Code Complexity) metric."""
+        if not self.llm:
+            return ComplexityMetrics()
+        
+        # Truncate code to avoid token limits
+        truncated_code = code[:2000]
+        
+        prompt = f"""Rate this {language.value} code complexity from 1-10:
+
+```{truncated_code}```
+
+Consider:
+- Nesting depth
+- Branching complexity  
+- Cognitive load
+- Abstraction level
+
+Respond with just a number 1-10."""
+
+        try:
+            response = await self.llm.complete(prompt, tier=ModelTier.MEDIUM)
+            score = int(response.strip()) * 10  # Convert to 0-100
+        except (ValueError, Exception):
+            score = 50  # Default if parsing fails
+        
+        rating = "high" if score > 70 else "medium" if score > 40 else "low"
+        
+        return ComplexityMetrics(
+            lmcc_score=float(score),
+            lmcc_rating=rating,
+        )
 
     async def investigate_uncommon_patterns(
         self,

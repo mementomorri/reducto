@@ -38,6 +38,8 @@ class ComplexityMetrics(BaseModel):
     lines_of_code: int = 0
     maintainability_index: float = 0.0
     halstead_difficulty: float = 0.0
+    lmcc_score: float = 0.0
+    lmcc_rating: str = "low"
 
 
 class CodeBlock(BaseModel):

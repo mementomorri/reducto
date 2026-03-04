@@ -34,6 +34,8 @@ type ComplexityMetrics struct {
 	LinesOfCode          int     `json:"lines_of_code"`
 	MaintainabilityIndex float64 `json:"maintainability_index"`
 	HalsteadDifficulty   float64 `json:"halstead_difficulty"`
+	LMCCScore            float64 `json:"lmcc_score"`
+	LMCCRating           string  `json:"lmcc_rating"`
 }
 
 type CodeBlock struct {

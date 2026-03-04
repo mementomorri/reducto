@@ -96,15 +96,17 @@ class TestComplexityMetrics:
             maintainability_index=65.5,
             halstead_difficulty=12.3
         )
-        
+
         json_data = metrics.model_dump()
-        
+
         assert json_data == {
             "cyclomatic_complexity": 10,
             "cognitive_complexity": 15,
             "lines_of_code": 100,
             "maintainability_index": 65.5,
-            "halstead_difficulty": 12.3
+            "halstead_difficulty": 12.3,
+            "lmcc_score": 0.0,
+            "lmcc_rating": "low"
         }
 
 
