@@ -68,12 +68,15 @@ class EmbeddingService:
             self._use_real_embeddings = False
 
     def _mock_embedding(self, text: str) -> List[float]:
+        """Generate deterministic mock embedding using hash."""
         h = hashlib.sha256(text.encode()).hexdigest()
         embedding = []
-        for i in range(0, 64, 4):
-            val = int(h[i:i+4], 16) / 65535.0
+        # Generate 384 dimensions by reusing hash bytes
+        for i in range(384):
+            idx = (i * 2) % len(h)
+            val = int(h[idx:idx+2], 16) / 255.0
             embedding.append(val)
-        return embedding[:384]
+        return embedding
 
     async def embed_text(self, text: str) -> List[float]:
         if self._use_real_embeddings and self.model:
