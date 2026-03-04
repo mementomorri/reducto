@@ -513,6 +513,44 @@ func runCheck(path string) error {
 	return nil
 }
 
+func runSessionsList(cmd *cobra.Command, args []string) error {
+	fmt.Printf("Listing stored sessions...\n")
+	// For now, show placeholder - full implementation requires MCP session tools
+	fmt.Printf("Session management coming soon.\n")
+	fmt.Printf("Sessions are stored in: .reducto/sessions/\n")
+	return nil
+}
+
+func runSessionsShow(cmd *cobra.Command, args []string) error {
+	sessionID := args[0]
+	fmt.Printf("Showing session: %s\n", sessionID)
+	// For now, show placeholder - full implementation requires MCP session tools
+	fmt.Printf("Session details coming soon.\n")
+	return nil
+}
+
+func runSessionsCleanup(cmd *cobra.Command, args []string) error {
+	fmt.Printf("Cleaning up old sessions...\n")
+	// For now, show placeholder - full implementation requires MCP session tools
+	fmt.Printf("Session cleanup coming soon.\n")
+	return nil
+}
+
+func runApply(sessionID string, dryRun bool) error {
+	if dryRun {
+		fmt.Println("=== DRY RUN MODE - No changes will be applied ===")
+	} else {
+		if err := checkGitState("."); err != nil {
+			return err
+		}
+	}
+
+	fmt.Printf("Loading session: %s\n", sessionID)
+	// For now, show placeholder - full implementation requires MCP session tools
+	fmt.Printf("Session apply coming soon.\n")
+	return nil
+}
+
 var analyzeCmd = &cobra.Command{
 	Use:   "analyze [path]",
 	Short: "Analyze repository for compression opportunities",
@@ -662,6 +700,43 @@ var checkCmd = &cobra.Command{
 	},
 }
 
+var sessionsCmd = &cobra.Command{
+	Use:   "sessions",
+	Short: "Manage refactoring sessions",
+	Long:  `List, view, and manage stored refactoring sessions.`,
+}
+
+var sessionsListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List all stored sessions",
+	RunE:  runSessionsList,
+}
+
+var sessionsShowCmd = &cobra.Command{
+	Use:   "show <session-id>",
+	Short: "Show details for a session",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runSessionsShow,
+}
+
+var sessionsCleanupCmd = &cobra.Command{
+	Use:   "cleanup",
+	Short: "Remove old sessions (older than 7 days)",
+	RunE:  runSessionsCleanup,
+}
+
+var applyCmd = &cobra.Command{
+	Use:   "apply <session-id>",
+	Short: "Apply a stored refactoring plan",
+	Long:  `Load and apply changes from a previously generated refactoring session.`,
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		sessionID := args[0]
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
+		return runApply(sessionID, dryRun)
+	},
+}
+
 func initCommands() {
 	analyzeCmd.Flags().Bool("report", false, "generate baseline report after analysis")
 	deduplicateCmd.Flags().BoolP("yes", "y", false, "skip approval and apply changes automatically")
@@ -675,6 +750,8 @@ func initCommands() {
 	patternCmd.Flags().Bool("report", false, "generate report after pattern injection")
 	patternCmd.Flags().Bool("dry-run", false, "show proposed changes without applying")
 	reportCmd.Flags().StringP("session", "s", "", "session ID to report (default: last session)")
+	applyCmd.Flags().BoolP("yes", "y", false, "skip approval and apply changes automatically")
+	applyCmd.Flags().Bool("dry-run", false, "show proposed changes without applying")
 
 	rootCmd.AddCommand(analyzeCmd)
 	rootCmd.AddCommand(deduplicateCmd)
@@ -684,6 +761,12 @@ func initCommands() {
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(mcpCmd)
 	rootCmd.AddCommand(checkCmd)
+	rootCmd.AddCommand(applyCmd)
+
+	sessionsCmd.AddCommand(sessionsListCmd)
+	sessionsCmd.AddCommand(sessionsShowCmd)
+	sessionsCmd.AddCommand(sessionsCleanupCmd)
+	rootCmd.AddCommand(sessionsCmd)
 }
 
 func init() {
