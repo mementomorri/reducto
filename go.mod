@@ -8,6 +8,10 @@ require (
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
+	github.com/tree-sitter/go-tree-sitter v0.24.0
+	github.com/tree-sitter/tree-sitter-go v0.25.0
+	github.com/tree-sitter/tree-sitter-javascript v0.25.0
+	github.com/tree-sitter/tree-sitter-python v0.25.0
 	golang.org/x/sync v0.19.0
 )
 
@@ -40,10 +44,6 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/tree-sitter/go-tree-sitter v0.24.0 // indirect
-	github.com/tree-sitter/tree-sitter-go v0.25.0 // indirect
-	github.com/tree-sitter/tree-sitter-javascript v0.25.0 // indirect
-	github.com/tree-sitter/tree-sitter-python v0.25.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect

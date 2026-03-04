@@ -15,6 +15,7 @@ import (
 
 	"github.com/alexkarsten/reducto/internal/git"
 	"github.com/alexkarsten/reducto/internal/lsp"
+	"github.com/alexkarsten/reducto/internal/parser"
 	"github.com/alexkarsten/reducto/internal/runner"
 	"github.com/alexkarsten/reducto/internal/walker"
 	"github.com/alexkarsten/reducto/pkg/models"
@@ -479,7 +480,53 @@ func (s *Server) findBraceBlockEnd(lines []string, start int) int {
 }
 
 func (s *Server) handleGetAST(ctx context.Context, params json.RawMessage) (interface{}, error) {
-	return nil, NewError(InternalError, "AST extraction not yet implemented with Tree-sitter", nil)
+	var input struct {
+		Path    string `json:"path"`
+		Content string `json:"content,omitempty"`
+		Format  string `json:"format,omitempty"` // "full" or "simplified"
+	}
+	if err := json.Unmarshal(params, &input); err != nil {
+		return nil, NewError(InvalidParams, "Invalid params", err.Error())
+	}
+
+	var content string
+	if input.Content != "" {
+		content = input.Content
+	} else {
+		fullPath := filepath.Join(s.rootDir, input.Path)
+		data, err := os.ReadFile(fullPath)
+		if err != nil {
+			return nil, NewError(FileNotFound, "Failed to read file", err.Error())
+		}
+		content = string(data)
+	}
+
+	lang := s.walker.DetectLanguage(input.Path)
+	tsParser := parser.NewTSParser()
+	defer tsParser.Close()
+
+	result, err := tsParser.Parse(content, lang)
+	if err != nil {
+		return nil, NewError(InternalError, "Failed to parse with Tree-sitter", err.Error())
+	}
+
+	if input.Format == "simplified" {
+		return map[string]interface{}{
+			"path":    input.Path,
+			"symbols": result.Symbols,
+			"imports": result.Imports,
+			"exports": result.Exports,
+		}, nil
+	}
+
+	// Full AST would require tree-sitter tree serialization
+	// For now, return simplified version with symbols
+	return map[string]interface{}{
+		"path":     input.Path,
+		"language": lang,
+		"symbols":  result.Symbols,
+		"imports":  result.Imports,
+	}, nil
 }
 
 func (s *Server) handleFindReferences(ctx context.Context, params json.RawMessage) (interface{}, error) {
