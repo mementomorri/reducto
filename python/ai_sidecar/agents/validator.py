@@ -16,6 +16,7 @@ from ai_sidecar.models import (
 from ai_sidecar.agents.deduplicator import DeduplicatorAgent
 from ai_sidecar.agents.idiomatizer import IdiomatizerAgent
 from ai_sidecar.agents.pattern import PatternAgent
+from ai_sidecar.utils import calculate_complexity
 
 
 class ValidatorAgent:
@@ -157,24 +158,19 @@ class ValidatorAgent:
         return True
 
     async def _calculate_metrics(self, changes: list) -> ComplexityMetrics:
-        total_loc = 0
-        total_cyclomatic = 0
-        total_cognitive = 0
-
+        """Calculate aggregated complexity metrics for all changes."""
+        total_metrics = ComplexityMetrics(
+            cyclomatic_complexity=0,
+            cognitive_complexity=0,
+            lines_of_code=0,
+        )
+        
         for change in changes:
             content = change.modified if change.modified else change.original
             if content:
-                lines = [l for l in content.split("\n") if l.strip()]
-                total_loc += len(lines)
-
-                for line in lines:
-                    stripped = line.strip()
-                    if any(stripped.startswith(kw) for kw in ["if ", "for ", "while ", "case "]):
-                        total_cyclomatic += 1
-                        total_cognitive += 1
-
-        return ComplexityMetrics(
-            cyclomatic_complexity=total_cyclomatic,
-            cognitive_complexity=total_cognitive,
-            lines_of_code=total_loc,
-        )
+                metrics = calculate_complexity(content)
+                total_metrics.cyclomatic_complexity += metrics.cyclomatic_complexity
+                total_metrics.cognitive_complexity += metrics.cognitive_complexity
+                total_metrics.lines_of_code += metrics.lines_of_code
+        
+        return total_metrics

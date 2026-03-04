@@ -2,7 +2,6 @@
 Idiomatizer agent for transforming code to idiomatic patterns.
 """
 
-import uuid
 from typing import List, Dict, Optional
 
 from ai_sidecar.models import (
@@ -13,14 +12,12 @@ from ai_sidecar.models import (
     ModelTier,
 )
 from ai_sidecar.session import SessionStore
+from ai_sidecar.agents.base import BaseAgent
 
 
-class IdiomatizerAgent:
+class IdiomatizerAgent(BaseAgent):
     def __init__(self, llm_router=None, mcp_client=None, session_store: Optional[SessionStore] = None):
-        self.llm = llm_router
-        self.mcp = mcp_client
-        self.session_store = session_store or SessionStore()
-        self._session_plans: Dict[str, RefactorPlan] = {}
+        super().__init__(llm_router, mcp_client, session_store)
 
     async def idiomatize(self, request: IdiomatizeRequest) -> RefactorPlan:
         path = request.path
@@ -32,7 +29,7 @@ class IdiomatizerAgent:
             file_changes = await self._idiomatize_file(file, language)
             changes.extend(file_changes)
 
-        session_id = str(uuid.uuid4())
+        session_id = self._generate_session_id()
         plan = RefactorPlan(
             session_id=session_id,
             changes=changes,
@@ -40,9 +37,8 @@ class IdiomatizerAgent:
         )
 
         # Save to both memory and disk
-        self._session_plans[session_id] = plan
-        self.session_store.save_plan(plan, command_type="idiomatize")
-        
+        self._save_plan(plan, command_type="idiomatize")
+
         return plan
 
     async def _idiomatize_file(
@@ -164,14 +160,6 @@ class IdiomatizerAgent:
             pass
 
         return changes
-
-    def get_plan(self, session_id: str) -> Optional[RefactorPlan]:
-        # Check memory first
-        if session_id in self._session_plans:
-            return self._session_plans[session_id]
-        
-        # Fall back to disk
-        return self.session_store.load_plan(session_id)
 
     async def suggest_idiomatic_version(
         self,

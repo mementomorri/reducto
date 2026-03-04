@@ -11,6 +11,16 @@ from ai_sidecar.models import (
     Language,
     FileInfo,
 )
+from ai_sidecar.utils import (
+    extract_python_function_name,
+    extract_js_function_name,
+    extract_go_function_name,
+    extract_class_name,
+    find_python_block_end,
+    find_js_block_end,
+    to_snake_case,
+    to_pascal_case,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -267,8 +277,8 @@ class QualityCheckerAgent:
         for i, line in enumerate(lines):
             stripped = line.strip()
             if stripped.startswith("def ") or stripped.startswith("async def "):
-                func_name = self._extract_python_function_name(stripped)
-                end_line = self._find_python_block_end(lines, i)
+                func_name = extract_python_function_name(stripped)
+                end_line = find_python_block_end(lines, i)
                 func_length = end_line - i
 
                 if func_length > self.max_function_lines:
@@ -291,8 +301,8 @@ class QualityCheckerAgent:
         for i, line in enumerate(lines):
             stripped = line.strip()
             if "function " in stripped or stripped.startswith("const ") and "=>" in stripped:
-                func_name = self._extract_js_function_name(stripped)
-                end_line = self._find_js_block_end(lines, i)
+                func_name = extract_js_function_name(stripped)
+                end_line = find_js_block_end(lines, i)
                 func_length = end_line - i
 
                 if func_length > self.max_function_lines:
@@ -315,8 +325,8 @@ class QualityCheckerAgent:
         for i, line in enumerate(lines):
             stripped = line.strip()
             if stripped.startswith("func "):
-                func_name = self._extract_go_function_name(stripped)
-                end_line = self._find_go_block_end(lines, i)
+                func_name = extract_go_function_name(stripped)
+                end_line = find_js_block_end(lines, i)
                 func_length = end_line - i
 
                 if func_length > self.max_function_lines:
@@ -364,7 +374,7 @@ class QualityCheckerAgent:
 
             if language == Language.PYTHON:
                 if stripped.startswith("def "):
-                    func_name = self._extract_python_function_name(stripped)
+                    func_name = extract_python_function_name(stripped)
                     if func_name and not func_name[0].islower() and not func_name.startswith("_"):
                         issues.append(QualityIssue(
                             file=file_path,
@@ -373,11 +383,11 @@ class QualityCheckerAgent:
                             severity="info",
                             message=f"Function '{func_name}' should use snake_case",
                             symbol=func_name,
-                            suggestion=f"Consider renaming to '{self._to_snake_case(func_name)}'",
+                            suggestion=f"Consider renaming to '{to_snake_case(func_name)}'",
                         ))
 
                 elif stripped.startswith("class "):
-                    class_name = self._extract_class_name(stripped)
+                    class_name = extract_class_name(stripped)
                     if class_name and not class_name[0].isupper():
                         issues.append(QualityIssue(
                             file=file_path,
@@ -386,71 +396,7 @@ class QualityCheckerAgent:
                             severity="info",
                             message=f"Class '{class_name}' should use PascalCase",
                             symbol=class_name,
-                            suggestion=f"Consider renaming to '{self._to_pascal_case(class_name)}'",
+                            suggestion=f"Consider renaming to '{to_pascal_case(class_name)}'",
                         ))
 
         return issues
-
-    def _extract_python_function_name(self, line: str) -> str:
-        match = re.match(r'(?:async\s+)?def\s+([a-zA-Z_][a-zA-Z0-9_]*)', line)
-        return match.group(1) if match else ""
-
-    def _extract_js_function_name(self, line: str) -> str:
-        patterns = [
-            r"function\s+([a-zA-Z_][a-zA-Z0-9_]*)",
-            r"([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(?:async\s*)?function",
-            r"const\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=",
-        ]
-        for pattern in patterns:
-            match = re.search(pattern, line)
-            if match:
-                return match.group(1)
-        return "anonymous"
-
-    def _extract_go_function_name(self, line: str) -> str:
-        line = line[5:].strip()
-        if line.startswith("("):
-            paren_end = line.find(")")
-            if paren_end > 0:
-                line = line[paren_end + 1:]
-        name = line.split("(")[0].strip()
-        return name if name else "anonymous"
-
-    def _extract_class_name(self, line: str) -> str:
-        line = line.replace("class ", "").strip()
-        for char in "(:[":
-            idx = line.find(char)
-            if idx > 0:
-                line = line[:idx]
-        return line.strip()
-
-    def _find_python_block_end(self, lines: List[str], start: int) -> int:
-        indent = len(lines[start]) - len(lines[start].lstrip())
-        for i in range(start + 1, len(lines)):
-            if lines[i].strip() and not lines[i].startswith(" " * (indent + 1)):
-                return i
-        return len(lines)
-
-    def _find_js_block_end(self, lines: List[str], start: int) -> int:
-        brace_count = 0
-        for i in range(start, len(lines)):
-            brace_count += lines[i].count("{") - lines[i].count("}")
-            if brace_count == 0 and i > start:
-                return i + 1
-        return len(lines)
-
-    def _find_go_block_end(self, lines: List[str], start: int) -> int:
-        brace_count = 0
-        for i in range(start, len(lines)):
-            brace_count += lines[i].count("{") - lines[i].count("}")
-            if brace_count == 0 and i > start:
-                return i + 1
-        return len(lines)
-
-    def _to_snake_case(self, name: str) -> str:
-        result = re.sub(r'([A-Z])', r'_\1', name)
-        return result.lower().lstrip("_")
-
-    def _to_pascal_case(self, name: str) -> str:
-        parts = name.split("_")
-        return "".join(p.capitalize() for p in parts if p)

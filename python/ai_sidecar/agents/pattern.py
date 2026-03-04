@@ -2,7 +2,6 @@
 Pattern agent for applying design patterns.
 """
 
-import uuid
 from typing import List, Dict, Optional
 
 from ai_sidecar.models import (
@@ -13,14 +12,12 @@ from ai_sidecar.models import (
     ModelTier,
 )
 from ai_sidecar.session import SessionStore
+from ai_sidecar.agents.base import BaseAgent
 
 
-class PatternAgent:
+class PatternAgent(BaseAgent):
     def __init__(self, llm_router=None, mcp_client=None, session_store: Optional[SessionStore] = None):
-        self.llm = llm_router
-        self.mcp = mcp_client
-        self.session_store = session_store or SessionStore()
-        self._session_plans: Dict[str, RefactorPlan] = {}
+        super().__init__(llm_router, mcp_client, session_store)
 
     async def apply_pattern(self, request: PatternRequest) -> RefactorPlan:
         pattern = request.pattern.lower()
@@ -36,7 +33,7 @@ class PatternAgent:
         else:
             changes = await self._apply_custom_pattern(files, pattern)
 
-        session_id = str(uuid.uuid4())
+        session_id = self._generate_session_id()
         plan = RefactorPlan(
             session_id=session_id,
             changes=changes,
@@ -45,8 +42,7 @@ class PatternAgent:
         )
 
         # Save to both memory and disk
-        self._session_plans[session_id] = plan
-        self.session_store.save_plan(plan, command_type="pattern")
+        self._save_plan(plan, command_type="pattern")
         
         return plan
 
@@ -318,7 +314,7 @@ class Singleton:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
-    
+
     @classmethod
     def get_instance(cls):
         """Get the singleton instance."""
@@ -326,11 +322,3 @@ class Singleton:
             cls._instance = cls()
         return cls._instance
 '''
-
-    def get_plan(self, session_id: str) -> Optional[RefactorPlan]:
-        # Check memory first
-        if session_id in self._session_plans:
-            return self._session_plans[session_id]
-        
-        # Fall back to disk
-        return self.session_store.load_plan(session_id)

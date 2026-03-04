@@ -17,6 +17,7 @@ from ai_sidecar.models import (
     ComplexityMetrics,
     ModelTier,
 )
+from ai_sidecar.utils import calculate_complexity
 
 logger = logging.getLogger(__name__)
 
@@ -215,46 +216,7 @@ class AnalyzerAgent:
         if not content:
             return ComplexityMetrics()
 
-        cyclomatic = self._count_cyclomatic(content)
-        cognitive = self._count_cognitive(content)
-        loc = len([l for l in content.split("\n") if l.strip()])
-
-        return ComplexityMetrics(
-            cyclomatic_complexity=cyclomatic,
-            cognitive_complexity=cognitive,
-            lines_of_code=loc,
-        )
-
-    def _count_cyclomatic(self, content: str) -> int:
-        keywords = [
-            "if ", "elif ", "else:", "for ", "while ",
-            "case ", "catch ", "except ", "finally:",
-            "and ", "or ", "&&", "||", "?",
-        ]
-        count = 1
-        for kw in keywords:
-            count += content.count(kw)
-        return count
-
-    def _count_cognitive(self, content: str) -> int:
-        lines = content.split("\n")
-        complexity = 0
-        nesting = 0
-
-        for line in lines:
-            stripped = line.strip()
-
-            if any(stripped.startswith(kw) for kw in ["if ", "elif ", "for ", "while ", "case "]):
-                complexity += 1 + nesting
-                nesting += 1
-            elif stripped.startswith("else") or stripped.startswith("except"):
-                complexity += 1 + max(0, nesting - 1)
-            elif stripped in ["break", "continue"]:
-                complexity += 1
-            elif stripped in ["}", "endif", "end"]:
-                nesting = max(0, nesting - 1)
-
-        return complexity
+        return calculate_complexity(content)
 
     async def calculate_lmcc(self, code: str, language: Language) -> ComplexityMetrics:
         """Calculate LM-CC (LLM-perceived Code Complexity) metric."""

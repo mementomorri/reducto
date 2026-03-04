@@ -69,6 +69,90 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&preferRemote, "prefer-remote", false, "prefer remote cloud models")
 }
 
+// Helper functions for CLI commands
+
+func handleDryRun(dryRun bool, path string) error {
+	if dryRun {
+		fmt.Println("=== DRY RUN MODE - No changes will be applied ===")
+		return nil
+	}
+	return checkGitState(path)
+}
+
+func runWithSpinner(operation string, inProgress string, complete string, fn func() error) error {
+	fmt.Printf("%s...\n", operation)
+	done := make(chan struct{})
+	finished := showSpinner(done, inProgress, complete)
+	err := fn()
+	close(done)
+	<-finished
+	return err
+}
+
+func printChangeCount(count int, itemType string) {
+	fmt.Printf("\n")
+	if count == 0 {
+		fmt.Printf("No %s found.\n", itemType)
+		return
+	}
+	fmt.Printf("Found %d %s opportunity(ies)\n", count, itemType)
+}
+
+func promptForApproval() error {
+	if cfg.PreApprove {
+		return nil
+	}
+	fmt.Printf("\nApply these changes? [y/N]: ")
+	var response string
+	fmt.Scanln(&response)
+	if response != "y" && response != "Y" {
+		return fmt.Errorf("aborted by user")
+	}
+	return nil
+}
+
+func applyChangesAndReport(plan *models.RefactorPlan, command string, path string, generateReport bool) error {
+	changeCount := len(plan.Changes)
+	printChangeCount(changeCount, strings.TrimSuffix(command, "e"))
+	if changeCount == 0 {
+		return nil
+	}
+
+	if cfg.Verbose {
+		fmt.Printf("\n%s\n", plan.Description)
+	} else {
+		fmt.Printf("\nRun with -v for details.\n")
+	}
+
+	if generateReport {
+		fmt.Printf("\nSession ID: %s\n", plan.SessionID)
+	}
+
+	if err := promptForApproval(); err != nil {
+		return err
+	}
+
+	fmt.Printf("\nApplying %d change(s)...\n", changeCount)
+	applyResult, err := mcpManager.ApplyPlan(plan, true)
+	if err != nil {
+		fmt.Printf("Warning: Some changes may have been rolled back: %v\n", err)
+	}
+	if applyResult != nil && applyResult.Success {
+		fmt.Printf("✓ All changes applied successfully.\n")
+	} else if applyResult != nil {
+		fmt.Printf("✗ Some changes failed: %s\n", applyResult.Error)
+	}
+	if generateReport && applyResult != nil {
+		rep := reporter.New(cfg)
+		if err := rep.Generate(applyResult); err != nil {
+			fmt.Printf("Warning: Failed to generate report: %v\n", err)
+		} else {
+			fmt.Printf("Report generated for session %s.\n", plan.SessionID)
+		}
+	}
+	return nil
+}
+
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -204,24 +288,17 @@ func runAnalyzeWithReport(path string) error {
 }
 
 func runDeduplicate(path string, commitChanges bool, generateReport bool, dryRun bool) error {
-	if dryRun {
-		fmt.Println("=== DRY RUN MODE - No changes will be applied ===")
-	} else {
-		if err := checkGitState(path); err != nil {
-			return err
-		}
+	if err := handleDryRun(dryRun, path); err != nil {
+		return err
 	}
 
-	fmt.Printf("Finding duplicate code...\n")
-
-	done := make(chan struct{})
-	finished := showSpinner(done, "Finding duplicates", "Deduplication analysis complete")
-
-	mcpManager = sidecar.NewMCPManager(path, cfg)
-	plan, err := mcpManager.Deduplicate(path)
-	close(done)
-	<-finished
-
+	var plan *models.RefactorPlan
+	err := runWithSpinner("Finding duplicate code", "Finding duplicates", "Deduplication analysis complete", func() error {
+		mcpManager = sidecar.NewMCPManager(path, cfg)
+		var err error
+		plan, err = mcpManager.Deduplicate(path)
+		return err
+	})
 	if err != nil {
 		return fmt.Errorf("deduplication planning failed: %w", err)
 	}
@@ -231,77 +308,21 @@ func runDeduplicate(path string, commitChanges bool, generateReport bool, dryRun
 		return rep.GenerateDryRun(plan, "deduplicate", path)
 	}
 
-	fmt.Printf("\n")
-	changeCount := len(plan.Changes)
-	if changeCount == 0 {
-		fmt.Printf("No duplicate code patterns found.\n")
-		return nil
-	}
-
-	fmt.Printf("Found %d refactoring opportunity(ies)\n", changeCount)
-	if cfg.Verbose {
-		fmt.Printf("\n%s\n", plan.Description)
-	} else {
-		fmt.Printf("\nRun with -v for details.\n")
-	}
-
-	if generateReport {
-		fmt.Printf("\nSession ID: %s\n", plan.SessionID)
-	}
-
-	if !cfg.PreApprove {
-		fmt.Printf("\nApply these changes? [y/N]: ")
-		var response string
-		fmt.Scanln(&response)
-		if response != "y" && response != "Y" {
-			return fmt.Errorf("aborted by user")
-		}
-	}
-
-	fmt.Printf("\nApplying %d change(s)...\n", changeCount)
-	
-	applyResult, err := mcpManager.ApplyPlan(plan, true)
-	if err != nil {
-		fmt.Printf("Warning: Some changes may have been rolled back: %v\n", err)
-	}
-	
-	if applyResult != nil && applyResult.Success {
-		fmt.Printf("✓ All changes applied successfully.\n")
-	} else if applyResult != nil {
-		fmt.Printf("✗ Some changes failed: %s\n", applyResult.Error)
-	}
-
-	if generateReport && applyResult != nil {
-		rep := reporter.New(cfg)
-		if err := rep.Generate(applyResult); err != nil {
-			fmt.Printf("Warning: Failed to generate report: %v\n", err)
-		} else {
-			fmt.Printf("Report generated for session %s.\n", plan.SessionID)
-		}
-	}
-
-	return nil
+	return applyChangesAndReport(plan, "deduplicate", path, generateReport)
 }
 
 func runIdiomatize(path string, dryRun bool) error {
-	if dryRun {
-		fmt.Println("=== DRY RUN MODE - No changes will be applied ===")
-	} else {
-		if err := checkGitState(path); err != nil {
-			return err
-		}
+	if err := handleDryRun(dryRun, path); err != nil {
+		return err
 	}
 
-	fmt.Printf("Finding idiomatization opportunities...\n")
-
-	done := make(chan struct{})
-	finished := showSpinner(done, "Analyzing code patterns", "Idiomatization analysis complete")
-
-	mcpManager = sidecar.NewMCPManager(path, cfg)
-	plan, err := mcpManager.Idiomatize(path)
-	close(done)
-	<-finished
-
+	var plan *models.RefactorPlan
+	err := runWithSpinner("Finding idiomatization opportunities", "Analyzing code patterns", "Idiomatization analysis complete", func() error {
+		mcpManager = sidecar.NewMCPManager(path, cfg)
+		var err error
+		plan, err = mcpManager.Idiomatize(path)
+		return err
+	})
 	if err != nil {
 		return fmt.Errorf("idiomatization planning failed: %w", err)
 	}
@@ -311,68 +332,26 @@ func runIdiomatize(path string, dryRun bool) error {
 		return rep.GenerateDryRun(plan, "idiomatize", path)
 	}
 
-	fmt.Printf("\n")
-	changeCount := len(plan.Changes)
-	if changeCount == 0 {
-		fmt.Printf("No idiomatization opportunities found.\n")
-		return nil
-	}
-
-	fmt.Printf("Found %d idiomatization opportunity(ies)\n", changeCount)
-	if cfg.Verbose {
-		fmt.Printf("\n%s\n", plan.Description)
-	} else {
-		fmt.Printf("\nRun with -v for details.\n")
-	}
-
-	if !cfg.PreApprove {
-		fmt.Printf("\nApply these changes? [y/N]: ")
-		var response string
-		fmt.Scanln(&response)
-		if response != "y" && response != "Y" {
-			return fmt.Errorf("aborted by user")
-		}
-	}
-
-	fmt.Printf("\nApplying %d change(s)...\n", changeCount)
-	
-	applyResult, err := mcpManager.ApplyPlan(plan, true)
-	if err != nil {
-		fmt.Printf("Warning: Some changes may have been rolled back: %v\n", err)
-	}
-	
-	if applyResult != nil && applyResult.Success {
-		fmt.Printf("✓ All changes applied successfully.\n")
-	} else if applyResult != nil {
-		fmt.Printf("✗ Some changes failed: %s\n", applyResult.Error)
-	}
-
-	return nil
+	return applyChangesAndReport(plan, "idiomatize", path, false)
 }
 
 func runPattern(pattern, path string, dryRun bool) error {
-	if dryRun {
-		fmt.Println("=== DRY RUN MODE - No changes will be applied ===")
-	} else {
-		if err := checkGitState(path); err != nil {
-			return err
-		}
+	if err := handleDryRun(dryRun, path); err != nil {
+		return err
 	}
 
+	var plan *models.RefactorPlan
+	operation := "Finding pattern opportunities"
 	if pattern != "" {
-		fmt.Printf("Applying pattern: %s\n", pattern)
-	} else {
-		fmt.Printf("Finding pattern opportunities...\n")
+		operation = fmt.Sprintf("Applying pattern: %s", pattern)
 	}
-
-	done := make(chan struct{})
-	finished := showSpinner(done, "Analyzing patterns", "Pattern analysis complete")
-
-	mcpManager = sidecar.NewMCPManager(path, cfg)
-	plan, err := mcpManager.ApplyPattern(pattern, path)
-	close(done)
-	<-finished
-
+	
+	err := runWithSpinner(operation, "Analyzing patterns", "Pattern analysis complete", func() error {
+		mcpManager = sidecar.NewMCPManager(path, cfg)
+		var err error
+		plan, err = mcpManager.ApplyPattern(pattern, path)
+		return err
+	})
 	if err != nil {
 		return fmt.Errorf("pattern injection failed: %w", err)
 	}
@@ -382,44 +361,7 @@ func runPattern(pattern, path string, dryRun bool) error {
 		return rep.GenerateDryRun(plan, "pattern", path)
 	}
 
-	fmt.Printf("\n")
-	changeCount := len(plan.Changes)
-	if changeCount == 0 {
-		fmt.Printf("No pattern opportunities found.\n")
-		return nil
-	}
-
-	fmt.Printf("Found %d pattern opportunity(ies)\n", changeCount)
-	if cfg.Verbose {
-		fmt.Printf("\nPattern: %s\n", plan.Pattern)
-		fmt.Printf("%s\n", plan.Description)
-	} else {
-		fmt.Printf("\nRun with -v for details.\n")
-	}
-
-	if !cfg.PreApprove {
-		fmt.Printf("\nApply these changes? [y/N]: ")
-		var response string
-		fmt.Scanln(&response)
-		if response != "y" && response != "Y" {
-			return fmt.Errorf("aborted by user")
-		}
-	}
-
-	fmt.Printf("\nApplying %d change(s)...\n", changeCount)
-	
-	applyResult, err := mcpManager.ApplyPlan(plan, true)
-	if err != nil {
-		fmt.Printf("Warning: Some changes may have been rolled back: %v\n", err)
-	}
-	
-	if applyResult != nil && applyResult.Success {
-		fmt.Printf("✓ All changes applied successfully.\n")
-	} else if applyResult != nil {
-		fmt.Printf("✗ Some changes failed: %s\n", applyResult.Error)
-	}
-
-	return nil
+	return applyChangesAndReport(plan, "pattern", path, false)
 }
 
 func runReport(sessionID string) error {

@@ -2,7 +2,6 @@
 Deduplicator agent for finding and eliminating code duplication.
 """
 
-import uuid
 from typing import List, Dict, Optional
 
 from ai_sidecar.models import (
@@ -18,9 +17,18 @@ from ai_sidecar.models import (
 )
 from ai_sidecar.embeddings import EmbeddingService
 from ai_sidecar.session import SessionStore
+from ai_sidecar.utils import (
+    extract_python_function_name,
+    extract_js_function_name,
+    extract_go_function_name,
+    find_python_block_end,
+    find_js_block_end,
+    calculate_complexity,
+)
+from ai_sidecar.agents.base import BaseAgent
 
 
-class DeduplicatorAgent:
+class DeduplicatorAgent(BaseAgent):
     def __init__(
         self,
         embedding_service: EmbeddingService,
@@ -28,11 +36,8 @@ class DeduplicatorAgent:
         mcp_client=None,
         session_store: Optional[SessionStore] = None,
     ):
+        super().__init__(llm_router, mcp_client, session_store)
         self.embedding_service = embedding_service
-        self.llm = llm_router
-        self.mcp = mcp_client
-        self.session_store = session_store or SessionStore()
-        self._session_plans: Dict[str, RefactorPlan] = {}
 
     async def find_duplicates(self, request: DeduplicateRequest) -> RefactorPlan:
         path = request.path
@@ -49,7 +54,7 @@ class DeduplicatorAgent:
                 if change:
                     changes.append(change)
 
-        session_id = str(uuid.uuid4())
+        session_id = self._generate_session_id()
         plan = RefactorPlan(
             session_id=session_id,
             changes=changes,
@@ -58,9 +63,8 @@ class DeduplicatorAgent:
         )
 
         # Save to both memory and disk
-        self._session_plans[session_id] = plan
-        self.session_store.save_plan(plan, command_type="deduplicate")
-        
+        self._save_plan(plan, command_type="deduplicate")
+
         return plan
 
     async def _extract_blocks(self, files: List[FileInfo]) -> List[CodeBlock]:
@@ -93,190 +97,53 @@ class DeduplicatorAgent:
         path: str,
         language: Language,
     ) -> List[CodeBlock]:
+        """Parse code blocks using language-specific detection."""
         blocks = []
         lines = content.split("\n")
 
+        # Language-specific detection and extraction
         if language == Language.PYTHON:
-            blocks = self._parse_python_blocks(lines, path, language)
+            detect_fn = lambda s: s.startswith(("def ", "async def "))
+            extract_fn = lambda s: extract_python_function_name(s)
+            find_end_fn = lambda lines, i: find_python_block_end(lines, i)
         elif language in (Language.JAVASCRIPT, Language.TYPESCRIPT):
-            blocks = self._parse_js_blocks(lines, path, language)
+            detect_fn = lambda s: "function " in s
+            extract_fn = lambda s: extract_js_function_name(s) or "anonymous"
+            find_end_fn = lambda lines, i: find_js_block_end(lines, i)
         elif language == Language.GO:
-            blocks = self._parse_go_blocks(lines, path, language)
-
-        return blocks
-
-    def _parse_python_blocks(
-        self,
-        lines: List[str],
-        path: str,
-        language: Language,
-    ) -> List[CodeBlock]:
-        blocks = []
+            detect_fn = lambda s: s.startswith("func ")
+            extract_fn = lambda s: extract_go_function_name(s[5:] if s.startswith("func ") else s)
+            find_end_fn = lambda lines, i: find_js_block_end(lines, i)
+        else:
+            return []
 
         i = 0
         while i < len(lines):
-            line = lines[i]
-            stripped = line.strip()
-
-            if stripped.startswith(("def ", "async def ")):
+            stripped = lines[i].strip()
+            if detect_fn(stripped):
                 start = i
-                name = self._extract_function_name(stripped)
-                end = self._find_block_end(lines, i)
-                content = "\n".join(lines[start:end])
+                name = extract_fn(stripped)
+                end = find_end_fn(lines, i)
+                content_block = "\n".join(lines[start:end])
 
                 blocks.append(CodeBlock(
                     id=f"{path}:{start}:{name}",
                     file=path,
                     start_line=start + 1,
                     end_line=end,
-                    content=content,
+                    content=content_block,
                     language=language,
                     symbol_type="function",
                     symbol_name=name,
-                    metrics=self._calculate_metrics(content),
+                    metrics=self._calculate_metrics(content_block),
                 ))
                 i = end
-
             i += 1
 
         return blocks
-
-    def _parse_js_blocks(
-        self,
-        lines: List[str],
-        path: str,
-        language: Language,
-    ) -> List[CodeBlock]:
-        blocks = []
-
-        i = 0
-        while i < len(lines):
-            line = lines[i]
-            stripped = line.strip()
-
-            if "function " in stripped:
-                start = i
-                name = self._extract_js_function_name(stripped)
-                end = self._find_js_block_end(lines, i)
-                content = "\n".join(lines[start:end])
-
-                blocks.append(CodeBlock(
-                    id=f"{path}:{start}:{name}",
-                    file=path,
-                    start_line=start + 1,
-                    end_line=end,
-                    content=content,
-                    language=language,
-                    symbol_type="function",
-                    symbol_name=name or "anonymous",
-                    metrics=self._calculate_metrics(content),
-                ))
-                i = end
-
-            i += 1
-
-        return blocks
-
-    def _parse_go_blocks(
-        self,
-        lines: List[str],
-        path: str,
-        language: Language,
-    ) -> List[CodeBlock]:
-        blocks = []
-
-        i = 0
-        while i < len(lines):
-            line = lines[i]
-            stripped = line.strip()
-
-            if stripped.startswith("func "):
-                start = i
-                name = self._extract_go_function_name(stripped[5:])
-                end = self._find_js_block_end(lines, i)
-                content = "\n".join(lines[start:end])
-
-                blocks.append(CodeBlock(
-                    id=f"{path}:{start}:{name}",
-                    file=path,
-                    start_line=start + 1,
-                    end_line=end,
-                    content=content,
-                    language=language,
-                    symbol_type="function",
-                    symbol_name=name,
-                    metrics=self._calculate_metrics(content),
-                ))
-                i = end
-
-            i += 1
-
-        return blocks
-
-    def _extract_function_name(self, line: str) -> str:
-        import re
-        match = re.match(r"(?:async\s+)?def\s+(\w+)", line)
-        if match:
-            return match.group(1)
-        return "unknown"
-
-    def _extract_js_function_name(self, line: str) -> Optional[str]:
-        import re
-        patterns = [
-            r"function\s+(\w+)",
-            r"(\w+)\s*=\s*(?:async\s*)?function",
-            r"(\w+)\s*:\s*(?:async\s*)?function",
-            r"const\s+(\w+)\s*=\s*(?:async\s*)?\(",
-        ]
-
-        for pattern in patterns:
-            match = re.search(pattern, line)
-            if match:
-                return match.group(1)
-        return None
-
-    def _extract_go_function_name(self, decl: str) -> str:
-        if decl.startswith("("):
-            paren_end = decl.find(")")
-            if paren_end > 0:
-                return decl[paren_end + 1:].split("(")[0].strip()
-        return decl.split("(")[0].strip()
-
-    def _find_block_end(self, lines: List[str], start: int) -> int:
-        indent = len(lines[start]) - len(lines[start].lstrip())
-        for i in range(start + 1, len(lines)):
-            if lines[i].strip() and not lines[i].startswith(" " * (indent + 1)):
-                return i
-        return len(lines)
-
-    def _find_js_block_end(self, lines: List[str], start: int) -> int:
-        brace_count = 0
-        for i in range(start, len(lines)):
-            brace_count += lines[i].count("{") - lines[i].count("}")
-            if brace_count == 0 and i > start:
-                return i + 1
-        return len(lines)
 
     def _calculate_metrics(self, content: str) -> ComplexityMetrics:
-        lines = [l for l in content.split("\n") if l.strip()]
-        loc = len(lines)
-
-        cyclomatic = 1
-        cognitive = 0
-
-        for line in lines:
-            stripped = line.strip()
-            if any(stripped.startswith(kw) for kw in ["if ", "for ", "while ", "case "]):
-                cyclomatic += 1
-                cognitive += 1
-            if " and " in stripped or " or " in stripped:
-                cyclomatic += 1
-
-        return ComplexityMetrics(
-            cyclomatic_complexity=cyclomatic,
-            cognitive_complexity=cognitive,
-            lines_of_code=loc,
-        )
+        return calculate_complexity(content)
 
     async def _create_dedup_change(
         self,
@@ -323,11 +190,3 @@ class DeduplicatorAgent:
                 dedented.append(line)
 
         return "\n".join(dedented)
-
-    def get_plan(self, session_id: str) -> Optional[RefactorPlan]:
-        # Check memory first
-        if session_id in self._session_plans:
-            return self._session_plans[session_id]
-        
-        # Fall back to disk
-        return self.session_store.load_plan(session_id)
