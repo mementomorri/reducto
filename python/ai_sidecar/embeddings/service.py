@@ -42,12 +42,13 @@ class EmbeddingService:
             
             self.model = SentenceTransformer('all-MiniLM-L6-v2')
             self._use_real_embeddings = True
-            logger.info("Loaded sentence-transformers model: all-MiniLM-L6-v2")
+            logger.info("Loaded sentence-transformers model: all-MiniLM-L6-v2 for semantic embeddings")
         except ImportError:
-            logger.warning("sentence-transformers not available, using mock embeddings")
+            logger.warning("sentence-transformers not available. Semantic deduplication will not work correctly.")
+            logger.warning("Install with: pip install sentence-transformers")
             self._use_real_embeddings = False
         except Exception as e:
-            logger.warning(f"Failed to load sentence-transformers: {e}, using mock embeddings")
+            logger.warning(f"Failed to load sentence-transformers: {e}. Semantic deduplication will not work correctly.")
             self._use_real_embeddings = False
 
         self.client = chromadb.EphemeralClient()
@@ -68,7 +69,11 @@ class EmbeddingService:
             self._use_real_embeddings = False
 
     def _mock_embedding(self, text: str) -> List[float]:
-        """Generate deterministic mock embedding using hash."""
+        """Generate deterministic mock embedding using hash.
+        
+        WARNING: This is NOT semantic similarity - it's just for testing.
+        Hash-based embeddings will NOT detect semantically similar code blocks.
+        """
         h = hashlib.sha256(text.encode()).hexdigest()
         embedding = []
         # Generate 384 dimensions by reusing hash bytes
@@ -172,6 +177,11 @@ class EmbeddingService:
     ) -> List[List[CodeBlock]]:
         if not self._initialized:
             await self.initialize()
+
+        if not self._use_real_embeddings:
+            logger.warning("Using hash-based embeddings - semantic deduplication is disabled.")
+            logger.warning("Install sentence-transformers for semantic duplicate detection: pip install sentence-transformers")
+            return []
 
         blocks_with_embeddings = await self.embed_blocks(blocks)
         await self.store_embeddings(blocks_with_embeddings)

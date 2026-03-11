@@ -47,12 +47,7 @@ class IdiomatizerAgent(BaseAgent):
         language: Language,
     ) -> List[FileChange]:
         changes = []
-        if hasattr(file, 'content'):
-            content = file.content
-            path = file.path
-        else:
-            content = file["content"]
-            path = file["path"]
+        content, path = self._get_file_content_and_path(file)
 
         if language == Language.PYTHON:
             changes = self._idiomatize_python(content, path)
@@ -155,9 +150,38 @@ class IdiomatizerAgent(BaseAgent):
 
     def _idiomatize_go(self, content: str, path: str) -> List[FileChange]:
         changes = []
+        import re
 
-        if "if err != nil {" in content:
-            pass
+        var_pattern = re.compile(r'\bvar\s+(\w+)\s+(\w+)\s*=\s*(.+)')
+        for match in var_pattern.finditer(content):
+            var_name = match.group(1)
+            var_type = match.group(2)
+            var_value = match.group(3)
+            original = f"var {var_name} {var_type} = {var_value}"
+            modified = f"{var_name} := {var_value}"
+            if original in content:
+                changes.append(FileChange(
+                    path=path,
+                    original=original,
+                    modified=modified,
+                    description=f"Replace 'var {var_name}' with short variable declaration ':='",
+                ))
+
+        if "interface{}" in content:
+            changes.append(FileChange(
+                path=path,
+                original="interface{}",
+                modified="any",
+                description="Replace empty interface{} with any",
+            ))
+
+        if re.search(r'"\s*\+\s*"', content):
+            changes.append(FileChange(
+                path=path,
+                original="+",
+                modified="fmt.Sprintf or strings.Builder",
+                description="Consider using fmt.Sprintf or strings.Builder for string concatenation",
+            ))
 
         return changes
 

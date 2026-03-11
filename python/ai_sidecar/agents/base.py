@@ -6,7 +6,7 @@ session storage, and plan management.
 """
 
 import uuid
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 
 from ai_sidecar.models import RefactorPlan
 from ai_sidecar.session import SessionStore
@@ -65,3 +65,29 @@ class BaseAgent:
         
         # Fall back to disk
         return self.session_store.load_plan(session_id)
+
+    def _get_file_content_and_path(self, file) -> tuple[str, str]:
+        """
+        Extract content and path from a file object (supports both dict and object formats).
+        
+        Args:
+            file: Either a dict with 'content' and 'path' keys, or an object with those attributes
+            
+        Returns:
+            Tuple of (content, path)
+        """
+        if hasattr(file, 'content'):
+            return file.content, file.path
+        return file["content"], file["path"]
+
+    def _get_files_content_and_paths(self, files) -> List[tuple[str, str]]:
+        """
+        Extract content and path from a list of file objects.
+        
+        Args:
+            files: List of files (either dicts or objects)
+            
+        Returns:
+            List of tuples (content, path)
+        """
+        return [self._get_file_content_and_path(f) for f in files]

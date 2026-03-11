@@ -54,12 +54,7 @@ class PatternAgent(BaseAgent):
         changes = []
 
         for file in files:
-            if hasattr(file, 'content'):
-                content = file.content
-                path = file.path
-            else:
-                content = file["content"]
-                path = file["path"]
+            content, path = self._get_file_content_and_path(file)
 
             if pattern == "strategy":
                 file_changes = self._apply_strategy_pattern(content, path)
@@ -136,12 +131,7 @@ class PatternAgent(BaseAgent):
         changes = []
 
         for file in files:
-            if hasattr(file, 'content'):
-                content = file.content
-                path = file.path
-            else:
-                content = file["content"]
-                path = file["path"]
+            content, path = self._get_file_content_and_path(file)
 
             if self._has_complex_conditionals(content):
                 changes.append(FileChange(

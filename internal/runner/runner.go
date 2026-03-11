@@ -217,10 +217,8 @@ func (r *Runner) parseLintOutput(output string, pt projectType) []LintIssue {
 		}
 
 		switch pt {
-		case projectPython:
-			issues = append(issues, r.parsePythonLintLine(line)...)
-		case projectGo:
-			issues = append(issues, r.parseGoLintLine(line)...)
+		case projectPython, projectGo:
+			issues = append(issues, r.parseStandardLintLine(line)...)
 		case projectJavaScript, projectTypeScript:
 			issues = append(issues, r.parseJSLintLine(line)...)
 		}
@@ -229,32 +227,7 @@ func (r *Runner) parseLintOutput(output string, pt projectType) []LintIssue {
 	return issues
 }
 
-func (r *Runner) parsePythonLintLine(line string) []LintIssue {
-	parts := strings.Split(line, ":")
-	if len(parts) < 3 {
-		return nil
-	}
-
-	file := strings.TrimSpace(parts[0])
-	lineNum := 0
-	fmt.Sscanf(parts[1], "%d", &lineNum)
-
-	message := ""
-	if len(parts) > 3 {
-		message = strings.TrimSpace(strings.Join(parts[2:], ":"))
-	} else {
-		message = strings.TrimSpace(parts[2])
-	}
-
-	return []LintIssue{{
-		File:     file,
-		Line:     lineNum,
-		Message:  message,
-		Severity: "warning",
-	}}
-}
-
-func (r *Runner) parseGoLintLine(line string) []LintIssue {
+func (r *Runner) parseStandardLintLine(line string) []LintIssue {
 	parts := strings.Split(line, ":")
 	if len(parts) < 3 {
 		return nil

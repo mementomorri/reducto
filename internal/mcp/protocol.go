@@ -86,4 +86,5 @@ const (
 	TestFailure    = -32003
 	GitConflict    = -32004
 	LSPUnavailable = -32005
+	NotImplemented = -32006
 )

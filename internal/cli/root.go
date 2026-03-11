@@ -208,7 +208,7 @@ func showSpinner(done <-chan struct{}, inProgress string, complete string) <-cha
 	return finished
 }
 
-func runAnalyze(path string) error {
+func runAnalyzeCore(path string) (*sidecar.AnalyzeResult, error) {
 	fmt.Printf("Analyzing repository...\n")
 
 	done := make(chan struct{})
@@ -220,9 +220,13 @@ func runAnalyze(path string) error {
 	<-finished
 
 	if err != nil {
-		return fmt.Errorf("analysis failed: %w", err)
+		return nil, fmt.Errorf("analysis failed: %w", err)
 	}
 
+	return result, nil
+}
+
+func printAnalyzeResult(result *sidecar.AnalyzeResult) {
 	fmt.Printf("\n")
 	fmt.Printf("Files: %d  Symbols: %d  Hotspots: %d\n", result.TotalFiles, result.TotalSymbols, len(result.Hotspots))
 
@@ -234,34 +238,25 @@ func runAnalyze(path string) error {
 	} else if len(result.Hotspots) > 0 {
 		fmt.Printf("\nRun with -v for hotspot details.\n")
 	}
+}
 
+func runAnalyze(path string) error {
+	result, err := runAnalyzeCore(path)
+	if err != nil {
+		return err
+	}
+
+	printAnalyzeResult(result)
 	return nil
 }
 
 func runAnalyzeWithReport(path string) error {
-	fmt.Printf("Analyzing repository...\n")
-
-	done := make(chan struct{})
-	finished := showSpinner(done, "Analyzing", "Analysis complete")
-
-	mcpManager = sidecar.NewMCPManager(path, cfg)
-	result, err := mcpManager.Analyze(path)
-	close(done)
-	<-finished
-
+	result, err := runAnalyzeCore(path)
 	if err != nil {
-		return fmt.Errorf("analysis failed: %w", err)
+		return err
 	}
 
-	fmt.Printf("\n")
-	fmt.Printf("Files: %d  Symbols: %d  Hotspots: %d\n", result.TotalFiles, result.TotalSymbols, len(result.Hotspots))
-
-	if len(result.Hotspots) > 0 && cfg.Verbose {
-		fmt.Printf("\n--- Complexity Hotspots ---\n")
-		for _, hs := range result.Hotspots {
-			fmt.Printf("  %s:%d - %s (CC: %d)\n", hs.File, hs.Line, hs.Symbol, hs.CyclomaticComplexity)
-		}
-	}
+	printAnalyzeResult(result)
 
 	baseline := &reporter.BaselineResult{
 		TotalFiles:   result.TotalFiles,
@@ -345,7 +340,7 @@ func runPattern(pattern, path string, dryRun bool) error {
 	if pattern != "" {
 		operation = fmt.Sprintf("Applying pattern: %s", pattern)
 	}
-	
+
 	err := runWithSpinner(operation, "Analyzing patterns", "Pattern analysis complete", func() error {
 		mcpManager = sidecar.NewMCPManager(path, cfg)
 		var err error
@@ -458,72 +453,70 @@ func runCheck(path string) error {
 
 func runSessionsList(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Listing stored sessions...\n")
-	
+
 	mcpManager = sidecar.NewMCPManager(".", cfg)
 	sessions, err := mcpManager.ListSessions()
 	if err != nil {
 		return fmt.Errorf("failed to list sessions: %w", err)
 	}
-	
+
 	if len(sessions) == 0 {
 		fmt.Printf("No stored sessions found.\n")
 		fmt.Printf("Sessions are stored in: .reducto/sessions/\n")
 		return nil
 	}
-	
+
 	fmt.Printf("Found %d session(s):\n\n", len(sessions))
 	fmt.Printf("%-40s %-15s %-10s %-10s %s\n", "Session ID", "Command", "Files", "Changes", "Created")
 	fmt.Printf("%s\n", strings.Repeat("-", 100))
-	
+
 	for _, s := range sessions {
 		sessionID, _ := s["session_id"].(string)
 		commandType, _ := s["command_type"].(string)
 		fileCount, _ := s["file_count"].(float64)
 		changeCount, _ := s["change_count"].(float64)
 		createdAt, _ := s["created_at"].(string)
-		
-		fmt.Printf("%-40s %-15s %-10.0f %-10.0f %s\n", 
-			sessionID[:min(40, len(sessionID))], 
-			commandType, 
-			fileCount, 
+
+		fmt.Printf("%-40s %-15s %-10.0f %-10.0f %s\n",
+			sessionID[:min(40, len(sessionID))],
+			commandType,
+			fileCount,
 			changeCount,
 			createdAt[:min(19, len(createdAt))])
 	}
-	
+
 	return nil
 }
 
 func runSessionsShow(cmd *cobra.Command, args []string) error {
 	sessionID := args[0]
 	fmt.Printf("Showing session: %s\n\n", sessionID)
-	
+
 	mcpManager = sidecar.NewMCPManager(".", cfg)
 	plan, err := mcpManager.GetSession(sessionID)
 	if err != nil {
 		return fmt.Errorf("failed to get session: %w", err)
 	}
-	
+
 	if plan == nil {
 		return fmt.Errorf("session not found: %s", sessionID)
 	}
-	
+
 	fmt.Printf("Description: %s\n", plan.Description)
 	fmt.Printf("Pattern: %s\n", plan.Pattern)
 	fmt.Printf("Changes: %d\n\n", len(plan.Changes))
-	
+
 	for i, change := range plan.Changes {
 		fmt.Printf("%d. %s\n", i+1, change.Path)
 		fmt.Printf("   %s\n\n", change.Description)
 	}
-	
+
 	return nil
 }
 
 func runSessionsCleanup(cmd *cobra.Command, args []string) error {
-	fmt.Printf("Cleaning up old sessions...\n")
-	
-	// For now, just show a message - full implementation would call MCP
-	fmt.Printf("Session cleanup coming soon. Sessions are stored in: .reducto/sessions/\n")
+	fmt.Println("Session cleanup is handled by the Python sidecar.")
+	fmt.Println("To clean up sessions, use the Python sidecar API or manually delete files in: .reducto/sessions/")
 	return nil
 }
 
@@ -536,9 +529,9 @@ func runApply(sessionID string, dryRun bool) error {
 		}
 	}
 
-	fmt.Printf("Loading session: %s\n", sessionID)
-	// For now, show placeholder - full implementation requires MCP session tools
-	fmt.Printf("Session apply coming soon.\n")
+	fmt.Println("Apply session is handled by the Python sidecar.")
+	fmt.Println("To apply a saved session, use the Python sidecar API.")
+	fmt.Printf("Session ID provided: %s\n", sessionID)
 	return nil
 }
 

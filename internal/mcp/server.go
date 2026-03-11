@@ -876,13 +876,7 @@ func (s *Server) calculateComplexity(content string) models.ComplexityMetrics {
 }
 
 func (s *Server) handleListSessions(ctx context.Context, params json.RawMessage) (interface{}, error) {
-	// Session management is handled by Python sidecar
-	// This is a placeholder that returns empty list
-	// Python sidecar should implement actual session listing
-	return map[string]interface{}{
-		"sessions": []interface{}{},
-		"message":  "Session listing not yet implemented in Go - use Python sidecar",
-	}, nil
+	return nil, NewError(NotImplemented, "Session management is handled by the Python sidecar. Use the Python sidecar API for session operations.", nil)
 }
 
 func (s *Server) handleGetSession(ctx context.Context, params json.RawMessage) (interface{}, error) {
@@ -893,11 +887,7 @@ func (s *Server) handleGetSession(ctx context.Context, params json.RawMessage) (
 		return nil, NewError(InvalidParams, "Invalid params", err.Error())
 	}
 
-	// Session management is handled by Python sidecar
-	// This is a placeholder
-	return map[string]interface{}{
-		"error": "Session retrieval not yet implemented in Go - use Python sidecar",
-	}, nil
+	return nil, NewError(NotImplemented, "Session management is handled by the Python sidecar. Use the Python sidecar API for session operations.", nil)
 }
 
 func (s *Server) handleDeleteSession(ctx context.Context, params json.RawMessage) (interface{}, error) {
@@ -908,11 +898,7 @@ func (s *Server) handleDeleteSession(ctx context.Context, params json.RawMessage
 		return nil, NewError(InvalidParams, "Invalid params", err.Error())
 	}
 
-	// Session management is handled by Python sidecar
-	// This is a placeholder
-	return map[string]interface{}{
-		"error": "Session deletion not yet implemented in Go - use Python sidecar",
-	}, nil
+	return nil, NewError(NotImplemented, "Session management is handled by the Python sidecar. Use the Python sidecar API for session operations.", nil)
 }
 
 func (s *Server) Shutdown() {

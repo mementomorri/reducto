@@ -311,7 +311,7 @@ func TestParsePythonLintLine(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New("/tmp")
-			result := r.parsePythonLintLine(tt.line)
+			result := r.parseStandardLintLine(tt.line)
 
 			if len(result) == 0 {
 				t.Fatal("expected at least one issue")
@@ -358,7 +358,7 @@ func TestParseGoLintLine(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := New("/tmp")
-			result := r.parseGoLintLine(tt.line)
+			result := r.parseStandardLintLine(tt.line)
 
 			if len(result) == 0 {
 				t.Fatal("expected at least one issue")
