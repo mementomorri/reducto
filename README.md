@@ -2,11 +2,27 @@
 
 **Semantic Code Compression Engine**
 
-Autonomously refactor codebases to reduce complexity and eliminate duplication while maintaining 100% functional parity.
+Autonomously refactor codebases to reduce complexity and eliminate duplication while maintaining functional parity.
 
 ## Install
 
-### Quick Install (Linux/macOS)
+### pip (recommended)
+
+```bash
+pip install reducto
+# or with semantic deduplication (ChromaDB + embeddings):
+pip install "reducto[embeddings]"
+```
+
+### From source
+
+```bash
+git clone https://github.com/alexkarsten/reducto.git
+cd reducto
+pip install -e ".[embeddings]"
+```
+
+### Quick install script
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/alexkarsten/reducto/main/install.sh | sh
@@ -15,63 +31,41 @@ curl -sSL https://raw.githubusercontent.com/alexkarsten/reducto/main/install.sh 
 ### Docker
 
 ```bash
-docker pull ghcr.io/alexkarsten/reducto:latest
-docker run -v $(pwd):/app ghcr.io/alexkarsten/reducto analyze /app
+docker build -t reducto .
+docker run -v "$(pwd):/work" -w /work reducto analyze .
 ```
 
-### Build from Source
+## Prerequisites
 
-Requires Go 1.24+ and Python 3.10+.
-
-```bash
-git clone https://github.com/alexkarsten/reducto.git
-cd reducto
-
-# Install Python dependencies
-pip install python/
-
-# Build and run
-go build -o reducto ./cmd/reducto
-./reducto analyze .
-```
-
-### Prerequisites
-
-- **Python 3.10+** - Required for AI-powered analysis
-- **pip or uv** - For Python dependency management
-- *(Optional)* **Ollama** - For local LLM inference
+- **Python 3.10+**
+- *(Optional)* **Ollama** for local LLM inference
+- *(Optional)* API keys for cloud models via LiteLLM
 
 ## Usage
 
 ```bash
-reducto analyze .              # Scan for complexity hotspots and duplicates
-reducto deduplicate .          # Find and eliminate code duplication
-reducto idiomatize .           # Transform code to idiomatic patterns
+reducto analyze .              # Scan for complexity hotspots
+reducto deduplicate .          # Find and eliminate duplication
+reducto idiomatize .           # Suggest idiomatic improvements
 reducto pattern factory .      # Apply a design pattern
+reducto check .                # Quality checks
+reducto apply <session-id>     # Apply a saved plan
+reducto sessions list          # List saved sessions
 ```
 
 ### Flags
 
-- `--dry-run` - Show proposed changes without applying (useful for CI/CD)
-- `--yes` - Skip approval prompts, apply changes automatically
-- `--commit` - Commit changes to git after successful refactoring
-- `--report` - Generate a detailed report
+- `--dry-run` — preview changes without applying
+- `--yes` — skip approval prompts
+- `--report` — write markdown report under `.reducto/`
+- `--model` — LLM override (e.g. `gpt-4o`, `ollama/qwen2.5-coder:1.5b`)
+- `--prefer-local` / `--prefer-remote` — Ollama vs cloud models
 
-## Features
+## Architecture
 
-- **Cross-file deduplication** - Detect semantically similar code using embeddings
-- **Idiomatic transformation** - Convert to Pythonic, modern JS, Go idioms
-- **Design pattern injection** - Apply Factory, Strategy, Observer patterns
-- **Complexity detection** - Identify cyclomatic/cognitive hotspots
-- **Git-integrated safety** - Checkpoints, rollback on test failure
-- **Local-first AI** - Use Ollama locally or cloud providers via LiteLLM
+Single Python package: Typer CLI, in-process `Workspace` (repo walk, tree-sitter parse, git safety, tests), and AI agents (LiteLLM + optional embeddings).
 
-## Documentation
-
-- [Architecture Overview](docs/TECH_STACK.md)
-- [Design Rationale](docs/DESIGN.md)
-- [Testing Philosophy](docs/TEST_RULES.md)
-- [Contributing Guidelines](AGENTS.md)
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## License
 

@@ -1,67 +1,48 @@
 [project]
-name = "reducto-sidecar"
-version = "0.1.0"
-description = "AI-powered code analysis sidecar for reducto"
+name = "reducto"
+version = "1.0.0"
+description = "Semantic code compression engine"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Alex Karsten" }]
-keywords = ["refactoring", "code-analysis", "ai", "llm"]
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-]
-
+readme = "README.md"
 dependencies = [
-    "fastapi>=0.100.0",
-    "uvicorn>=0.23.0",
+    "typer>=0.12.0",
     "pydantic>=2.0.0",
-    "pydantic-ai>=0.0.1",
+    "pyyaml>=6.0",
+    "gitpython>=3.1.0",
     "litellm>=1.0.0",
-    "instructor>=0.4.0",
-    "chromadb>=0.4.0",
-    "sentence-transformers>=2.2.0",
     "tenacity>=8.0.0",
     "tree-sitter>=0.21.0",
     "tree-sitter-python>=0.21.0",
     "tree-sitter-javascript>=0.21.0",
-    "tree-sitter-typescript>=0.21.0",
     "tree-sitter-go>=0.21.0",
 ]
 
 [project.optional-dependencies]
+embeddings = [
+    "chromadb>=0.4.0",
+    "sentence-transformers>=2.2.0",
+]
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0",
     "pytest-mock>=3.11.0",
-    "requests>=2.31.0",
-    "numpy>=1.24.0",
     "ruff>=0.1.0",
     "black>=23.0.0",
     "mypy>=1.0.0",
 ]
 
 [project.scripts]
-reducto-sidecar = "ai_sidecar.mcp_entry:main"
+reducto = "reducto.cli:app"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["ai_sidecar"]
-
-[tool.hatch.build.targets.sdist]
-include = [
-    "/ai_sidecar",
-    "/pyproject.toml",
-]
+packages = ["reducto"]
 
 [tool.ruff]
 line-length = 100
@@ -69,7 +50,7 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
-ignore = ["E501"]
+ignore = ["E501", "F841", "W291", "W293"]
 
 [tool.black]
 line-length = 100
@@ -78,7 +59,6 @@ target-version = ["py310"]
 [tool.mypy]
 python_version = "3.10"
 warn_return_any = true
-warn_unused_configs = true
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
