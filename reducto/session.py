@@ -75,6 +75,12 @@ class SessionStore:
         """Get the file path for a session."""
         return self.storage_dir / f"{session_id}.json"
 
+    @staticmethod
+    def _metadata_with_session_id(metadata: dict, session_path: Path) -> dict:
+        if "session_id" in metadata:
+            return metadata
+        return {**metadata, "session_id": session_path.stem}
+
     def save_plan(self, plan: RefactorPlan, command_type: str = "unknown") -> None:
         """
         Save a refactoring plan to disk.
@@ -175,8 +181,7 @@ class SessionStore:
                 metadata = data.get("metadata", {})
                 if not metadata:
                     continue
-                if "session_id" not in metadata:
-                    metadata = {**metadata, "session_id": session_path.stem}
+                metadata = self._metadata_with_session_id(metadata, session_path)
 
                 info = SessionInfo.from_dict(metadata)
                 sessions.append(info)
@@ -240,7 +245,7 @@ class SessionStore:
 
                 if created_at < cutoff:
                     session_path.unlink()
-                    session_id = metadata.get("session_id", "unknown")
+                    session_id = self._metadata_with_session_id(metadata, session_path)["session_id"]
                     self._cache.pop(session_id, None)
                     deleted += 1
                     logger.debug(f"Deleted old session {session_id}")
@@ -276,7 +281,9 @@ class SessionStore:
             if not metadata:
                 return None
 
-            return SessionInfo.from_dict(metadata)
+            return SessionInfo.from_dict(
+                self._metadata_with_session_id(metadata, session_path)
+            )
 
         except Exception as e:
             logger.error(f"Failed to read session info {session_id}: {e}")
