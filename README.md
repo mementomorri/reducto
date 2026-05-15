@@ -8,6 +8,8 @@ Autonomously refactor codebases to reduce complexity and eliminate duplication w
 
 ### pip (recommended)
 
+Requires **Python 3.14+**.
+
 ```bash
 pip install reducto
 # or with semantic deduplication (ChromaDB + embeddings):
@@ -46,7 +48,7 @@ docker run -v "$(pwd):/work" -w /work reducto analyze .
 
 ## Prerequisites
 
-- **Python 3.10+**
+- **Python 3.14+**
 - *(Optional)* **Ollama** for local LLM inference
 - *(Optional)* API keys for cloud models via LiteLLM
 

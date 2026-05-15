@@ -30,4 +30,4 @@ User → Typer CLI (reducto.cli)
 
 ## Distribution
 
-PyPI package `reducto` with console script `reducto`. No Go binary, no MCP JSON-RPC, no sidecar process.
+PyPI package `reducto` with console script `reducto`. **Requires Python 3.14+** (`requires-python` in `pyproject.toml`). No Go binary, no MCP JSON-RPC, no sidecar process.

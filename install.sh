@@ -14,12 +14,12 @@ warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
 if ! command -v "$PYTHON_CMD" &>/dev/null; then
-  error "Python 3.10+ required. Install python3 and retry."
+  error "Python 3.14+ required. Install python3 and retry."
 fi
 
 PY_VER=$("$PYTHON_CMD" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-if ! "$PYTHON_CMD" -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)"; then
-  error "Python $PY_VER found; 3.10+ required."
+if ! "$PYTHON_CMD" -c "import sys; sys.exit(0 if sys.version_info >= (3, 14) else 1)"; then
+  error "Python $PY_VER found; 3.14+ required."
 fi
 
 info "Installing reducto with $PYTHON_CMD..."

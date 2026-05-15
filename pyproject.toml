@@ -2,10 +2,14 @@
 name = "reducto"
 version = "1.0.0"
 description = "Semantic code compression engine"
-requires-python = ">=3.10"
+requires-python = ">=3.14"
 license = { text = "MIT" }
 authors = [{ name = "Alex Karsten" }]
 readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
+]
 dependencies = [
     "typer>=0.12.0",
     "pydantic>=2.0.0",
@@ -21,7 +25,7 @@ dependencies = [
 
 [project.optional-dependencies]
 embeddings = [
-    "chromadb>=0.4.0",
+    "chromadb>=1.5.0",
     "sentence-transformers>=2.2.0",
 ]
 # Marker extra: analyzing Go repos needs `go` on PATH (see README).
@@ -48,7 +52,7 @@ packages = ["reducto"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
@@ -56,10 +60,10 @@ ignore = ["E501", "F841", "W291", "W293"]
 
 [tool.black]
 line-length = 100
-target-version = ["py310"]
+target-version = ["py314"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.14"
 warn_return_any = true
 ignore_missing_imports = true
 

@@ -1,5 +1,7 @@
 # Testing
 
+Requires **Python 3.14+** (matches CI and `pyproject.toml`).
+
 ## Run tests
 
 ```bash
