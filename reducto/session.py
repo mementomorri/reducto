@@ -89,6 +89,7 @@ class SessionStore:
         # Create metadata
         metadata = {
             "version": 1,
+            "session_id": plan.session_id,
             "created_at": (
                 plan.created_at.isoformat() if plan.created_at else datetime.now().isoformat()
             ),
@@ -174,6 +175,8 @@ class SessionStore:
                 metadata = data.get("metadata", {})
                 if not metadata:
                     continue
+                if "session_id" not in metadata:
+                    metadata = {**metadata, "session_id": session_path.stem}
 
                 info = SessionInfo.from_dict(metadata)
                 sessions.append(info)

@@ -206,7 +206,7 @@ class Workspace:
                     "rolled_back": bool(checkpoint),
                     "test_output": result.output,
                     "error": "Tests failed after plan, rolled back",
-                    "applied": len(changes),
+                    "applied": 0 if checkpoint else len(changes),
                 }
         return {
             "success": True,

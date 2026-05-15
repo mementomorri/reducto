@@ -2,6 +2,7 @@
 
 import pytest
 
+from reducto.runner import TestResult as RunnerTestResult
 from reducto.workspace import PathEscapeError, Workspace
 
 
@@ -30,3 +31,18 @@ def test_apply_changes_rollback_on_bad_diff(temp_git_repo):
     assert not r["success"]
     assert r.get("rolled_back")
     assert main.read_text().strip() == "x = 1"
+
+
+def test_apply_changes_test_failure_reports_zero_applied(temp_git_repo, monkeypatch):
+    ws = Workspace(str(temp_git_repo))
+    diff = "--- a/main.py\n+++ b/main.py\n@@ -1,1 +1,1 @@\n-x = 1\n+x = 2\n"
+    monkeypatch.setattr(
+        ws._runner,
+        "run_tests",
+        lambda: RunnerTestResult(success=False, output="fail", command="pytest", exit_code=1),
+    )
+    r = ws.apply_changes_safe([("main.py", diff)], run_tests=True)
+    assert not r["success"]
+    assert r.get("rolled_back")
+    assert r["applied"] == 0
+    assert (temp_git_repo / "main.py").read_text().strip() == "x = 1"
