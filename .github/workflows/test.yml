@@ -24,8 +24,8 @@ jobs:
       - name: Install
         run: pip install -e ".[dev,embeddings]"
 
-      - name: Unit tests
-        run: pytest tests/unit -v
+      - name: Tests
+        run: pytest tests/ -v --cov-fail-under=30
 
       - name: CLI smoke
         run: reducto --help && reducto version
@@ -37,7 +37,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install -e ".[dev]" ruff black mypy
+      - run: pip install -e ".[dev]"
       - run: ruff check reducto/
       - run: black --check reducto/
       - run: mypy reducto/ --ignore-missing-imports

@@ -24,6 +24,8 @@ embeddings = [
     "chromadb>=0.4.0",
     "sentence-transformers>=2.2.0",
 ]
+# Marker extra: analyzing Go repos needs `go` on PATH (see README).
+go = []
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
@@ -64,3 +66,4 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+addopts = "--cov=reducto --cov-report=term-missing --cov-fail-under=30"

@@ -22,6 +22,15 @@ cd reducto
 pip install -e ".[embeddings]"
 ```
 
+### Optional extras
+
+| Extra | Purpose |
+|-------|---------|
+| `embeddings` | Semantic deduplication (ChromaDB + sentence-transformers) |
+| `go` | Marker for Go target repos — requires `go` on PATH for `go test` when analyzing `go.mod` projects |
+
+**LSP (Linux):** `find_references` uses `pylsp`, `pyright-langserver`, `gopls`, or `typescript-language-server` if installed on PATH.
+
 ### Quick install script
 
 ```bash

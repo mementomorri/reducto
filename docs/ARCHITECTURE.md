@@ -26,6 +26,7 @@ User → Typer CLI (reducto.cli)
 | `runner.py` | pytest / npm / go test detection |
 | `agents/` | LLM-driven planning |
 | `embeddings/` | ChromaDB semantic dedup (optional install) |
+| `lsp/` | Optional `find_references` via Linux language servers |
 
 ## Distribution
 

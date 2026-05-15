@@ -9,6 +9,7 @@ from reducto import diff as diff_mod
 from reducto import parse, repo
 from reducto.git_safety import GitError, GitSafety
 from reducto.models import AppConfig, ComplexityMetrics, FileChange, FileInfo, Symbol
+from reducto.lsp import LSPManager, Reference
 from reducto.runner import ProjectRunner
 
 
@@ -22,6 +23,7 @@ class Workspace:
         self.cfg = cfg or AppConfig()
         self._git = GitSafety(str(self.root))
         self._runner = ProjectRunner(str(self.root))
+        self._lsp: LSPManager | None = None
 
     def _resolve_path(self, path: str) -> Path:
         full = (self.root / path).resolve()
@@ -59,6 +61,19 @@ class Workspace:
         if content is None:
             content = self.read_file(path).content
         return parse.get_complexity(content)
+
+    def _lsp_mgr(self) -> LSPManager:
+        if self._lsp is None:
+            self._lsp = LSPManager(str(self.root))
+        return self._lsp
+
+    def find_references(self, path: str, line: int, character: int = 0) -> list[Reference]:
+        return self._lsp_mgr().find_references(path, line, character)
+
+    def shutdown_lsp(self) -> None:
+        if self._lsp:
+            self._lsp.shutdown()
+            self._lsp = None
 
     def apply_diff(self, path: str, diff_text: str) -> dict:
         full = self._resolve_path(path)

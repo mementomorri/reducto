@@ -3,11 +3,11 @@
 import subprocess
 import sys
 
-import pytest
-
 
 def test_help():
-    r = subprocess.run([sys.executable, "-m", "reducto.cli", "--help"], capture_output=True, text=True)
+    r = subprocess.run(
+        [sys.executable, "-m", "reducto.cli", "--help"], capture_output=True, text=True
+    )
     assert r.returncode == 0
     assert "analyze" in r.stdout
 
