@@ -56,13 +56,22 @@ docker run -v "$(pwd):/work" -w /work reducto analyze .
 
 ```bash
 reducto analyze .              # Scan for complexity hotspots
-reducto deduplicate .          # Find and eliminate duplication
-reducto idiomatize .           # Suggest idiomatic improvements
-reducto pattern factory .      # Apply a design pattern
+reducto deduplicate .          # Find duplicate blocks; suggest shared utils (see Plan modes)
+reducto idiomatize .           # Suggest idiomatic improvements (Python heuristics)
+reducto pattern factory .      # Suggest design-pattern templates
 reducto check .                # Quality checks
 reducto apply <session-id>     # Apply a saved plan
 reducto sessions list          # List saved sessions
 ```
+
+### Plan modes
+
+| Command | What the plan contains |
+|---------|-------------------------|
+| `deduplicate` | Embeddings find similar blocks; proposes new `utils/<symbol>_dedup.py` files. Does **not** rewrite call sites yet. |
+| `pattern` | Adds advisory templates under `strategies/`, `factories/`, etc. (or in-file singleton suggestion). |
+| `idiomatize` | Python-only heuristics (e.g. list comprehensions). Skips non-`.py` files. |
+| `apply` | Applies diffs via git checkpoint; rolls back if tests fail. |
 
 ### Flags
 
@@ -78,12 +87,6 @@ Single Python package: Typer CLI, in-process `Workspace` (repo walk, tree-sitter
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Migrating from pre-1.0 (Go + sidecar)
-
-- Install via `pip install reducto` (no Go binary).
-- `reducto mcp` removed; tools run in-process.
-- Deduplication needs `pip install "reducto[embeddings]"`.
-- Config env prefix: `REDUCTO_*` (replaces legacy `DEHYDRATE_*`).
 
 ## License
 

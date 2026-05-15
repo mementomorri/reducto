@@ -42,7 +42,7 @@ class App:
             prefer_local=self.cfg.prefer_local,
         )
         self._embedding = None
-        self.analyzer = AnalyzerAgent(self.workspace, self.llm)
+        self.analyzer = AnalyzerAgent(self.workspace)
         self.quality = QualityCheckerAgent(self.workspace)
 
     async def _embeddings(self):

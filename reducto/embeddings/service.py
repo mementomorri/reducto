@@ -198,30 +198,25 @@ class EmbeddingService:
 
         groups = []
         processed = set()
+        by_id = {b.id: b for b in blocks_with_embeddings}
 
         for block in blocks_with_embeddings:
             if block.id in processed or not block.embedding:
                 continue
 
-            similar = await self.find_similar(
-                block.embedding,
-                n_results=10,
-            )
-
+            similar = await self.find_similar(block.embedding, n_results=10)
             group = [block]
             processed.add(block.id)
 
             for sim in similar:
                 if sim["id"] == block.id:
                     continue
-
-                similarity = 1 - sim["distance"]
-                if similarity >= threshold:
-                    for b in blocks_with_embeddings:
-                        if b.id == sim["id"] and b.id not in processed:
-                            group.append(b)
-                            processed.add(b.id)
-                            break
+                if 1 - sim["distance"] < threshold:
+                    continue
+                other = by_id.get(sim["id"])
+                if other and other.id not in processed:
+                    group.append(other)
+                    processed.add(other.id)
 
             if len(group) > 1:
                 groups.append(group)

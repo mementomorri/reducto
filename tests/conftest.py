@@ -7,6 +7,20 @@ import pytest
 
 from reducto.models import ComplexityMetrics
 
+FIXTURE_REPO = Path(__file__).resolve().parents[1] / "test-python-code" / "python"
+
+
+@pytest.fixture
+def fixture_repo_root() -> Path:
+    return FIXTURE_REPO
+
+
+@pytest.fixture
+def fixture_files():
+    from reducto.repo import walk
+
+    return walk(str(FIXTURE_REPO))
+
 
 @pytest.fixture
 def sample_complexity_metrics() -> ComplexityMetrics:
@@ -32,10 +46,3 @@ def temp_git_repo(tmp_path: Path):
     subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
     subprocess.run(["git", "commit", "-m", "init"], cwd=repo, check=True, capture_output=True)
     return repo
-
-
-@pytest.fixture
-def sample_python_file(tmp_path: Path) -> Path:
-    p = tmp_path / "sample.py"
-    p.write_text("def foo():\n    if True:\n        return 1\n")
-    return p

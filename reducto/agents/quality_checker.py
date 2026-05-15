@@ -11,11 +11,13 @@ from reducto.models import (
     FileInfo,
     Language,
 )
+from reducto.repo import detect_language
 from reducto.utils.code_utils import (
     extract_class_name,
     extract_go_function_name,
     extract_js_function_name,
     extract_python_function_name,
+    find_go_block_end,
     find_js_block_end,
     find_python_block_end,
     to_pascal_case,
@@ -79,7 +81,7 @@ class QualityCheckerAgent:
         for file in files:
             file_path = file.path
             content = file.content if file.content else ""
-            language = self._detect_language(file_path)
+            language = detect_language(file_path)
 
             if not content or language == Language.UNKNOWN:
                 continue
@@ -96,20 +98,6 @@ class QualityCheckerAgent:
         report.info = sum(1 for i in report.issues if i.severity == "info")
 
         return report
-
-    def _detect_language(self, path: str) -> Language:
-        _, ext = re.subn(r"\.[^.]+$", "", path)
-        mapping = {
-            ".py": Language.PYTHON,
-            ".js": Language.JAVASCRIPT,
-            ".ts": Language.TYPESCRIPT,
-            ".tsx": Language.TYPESCRIPT,
-            ".go": Language.GO,
-        }
-        for ext, lang in mapping.items():
-            if path.endswith(ext):
-                return lang
-        return Language.UNKNOWN
 
     async def _check_file(
         self, file_path: str, content: str, language: Language
@@ -327,99 +315,68 @@ class QualityCheckerAgent:
     def _check_function_length(
         self, file_path: str, lines: list[str], language: Language
     ) -> list[QualityIssue]:
+        configs = {
+            Language.PYTHON: (
+                lambda s: s.startswith("def ") or s.startswith("async def "),
+                extract_python_function_name,
+                find_python_block_end,
+            ),
+            Language.JAVASCRIPT: (
+                lambda s: "function " in s or (s.startswith("const ") and "=>" in s),
+                extract_js_function_name,
+                find_js_block_end,
+            ),
+            Language.TYPESCRIPT: (
+                lambda s: "function " in s or (s.startswith("const ") and "=>" in s),
+                extract_js_function_name,
+                find_js_block_end,
+            ),
+            Language.GO: (
+                lambda s: s.startswith("func "),
+                extract_go_function_name,
+                find_go_block_end,
+            ),
+        }
+        cfg = configs.get(language)
+        if not cfg:
+            return []
+        is_fn_start, extract_name, block_end_fn = cfg
+        return self._function_length_issues(
+            file_path, lines, is_fn_start, extract_name, block_end_fn
+        )
+
+    def _function_length_issues(
+        self,
+        file_path: str,
+        lines: list[str],
+        is_fn_start,
+        extract_name,
+        block_end_fn,
+    ) -> list[QualityIssue]:
         issues = []
-
-        if language == Language.PYTHON:
-            issues.extend(self._check_python_function_length(file_path, lines))
-        elif language in (Language.JAVASCRIPT, Language.TYPESCRIPT):
-            issues.extend(self._check_js_function_length(file_path, lines))
-        elif language == Language.GO:
-            issues.extend(self._check_go_function_length(file_path, lines))
-
-        return issues
-
-    def _check_python_function_length(self, file_path: str, lines: list[str]) -> list[QualityIssue]:
-        issues = []
-
         for i, line in enumerate(lines):
             stripped = line.strip()
-            if stripped.startswith("def ") or stripped.startswith("async def "):
-                func_name = extract_python_function_name(stripped)
-                end_line = find_python_block_end(lines, i)
-                func_length = end_line - i
-
-                if func_length > self.max_function_lines:
-                    severity = (
-                        "critical" if func_length > self.max_function_lines * 2 else "warning"
-                    )
-                    issues.append(
-                        QualityIssue(
-                            file=file_path,
-                            line=i + 1,
-                            issue_type="long_function",
-                            severity=severity,
-                            message=f"Function '{func_name}' is {func_length} lines (max {self.max_function_lines})",
-                            symbol=func_name,
-                            suggestion="Consider breaking this function into smaller functions",
-                        )
-                    )
-
-        return issues
-
-    def _check_js_function_length(self, file_path: str, lines: list[str]) -> list[QualityIssue]:
-        issues = []
-
-        for i, line in enumerate(lines):
-            stripped = line.strip()
-            if "function " in stripped or stripped.startswith("const ") and "=>" in stripped:
-                func_name = extract_js_function_name(stripped)
-                end_line = find_js_block_end(lines, i)
-                func_length = end_line - i
-
-                if func_length > self.max_function_lines:
-                    severity = (
-                        "critical" if func_length > self.max_function_lines * 2 else "warning"
-                    )
-                    issues.append(
-                        QualityIssue(
-                            file=file_path,
-                            line=i + 1,
-                            issue_type="long_function",
-                            severity=severity,
-                            message=f"Function '{func_name}' is {func_length} lines (max {self.max_function_lines})",
-                            symbol=func_name,
-                            suggestion="Consider breaking this function into smaller functions",
-                        )
-                    )
-
-        return issues
-
-    def _check_go_function_length(self, file_path: str, lines: list[str]) -> list[QualityIssue]:
-        issues = []
-
-        for i, line in enumerate(lines):
-            stripped = line.strip()
-            if stripped.startswith("func "):
-                func_name = extract_go_function_name(stripped)
-                end_line = find_js_block_end(lines, i)
-                func_length = end_line - i
-
-                if func_length > self.max_function_lines:
-                    severity = (
-                        "critical" if func_length > self.max_function_lines * 2 else "warning"
-                    )
-                    issues.append(
-                        QualityIssue(
-                            file=file_path,
-                            line=i + 1,
-                            issue_type="long_function",
-                            severity=severity,
-                            message=f"Function '{func_name}' is {func_length} lines (max {self.max_function_lines})",
-                            symbol=func_name,
-                            suggestion="Consider breaking this function into smaller functions",
-                        )
-                    )
-
+            if not is_fn_start(stripped):
+                continue
+            func_name = extract_name(stripped) or "anonymous"
+            func_length = block_end_fn(lines, i) - i
+            if func_length <= self.max_function_lines:
+                continue
+            severity = "critical" if func_length > self.max_function_lines * 2 else "warning"
+            issues.append(
+                QualityIssue(
+                    file=file_path,
+                    line=i + 1,
+                    issue_type="long_function",
+                    severity=severity,
+                    message=(
+                        f"Function '{func_name}' is {func_length} lines "
+                        f"(max {self.max_function_lines})"
+                    ),
+                    symbol=func_name,
+                    suggestion="Consider breaking this function into smaller functions",
+                )
+            )
         return issues
 
     def _check_complexity(

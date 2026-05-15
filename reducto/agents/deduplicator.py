@@ -43,13 +43,11 @@ class DeduplicatorAgent(BaseAgent):
                 ch = self._create_dedup_change(group)
                 if ch:
                     changes.append(ch)
-        plan = RefactorPlan(
-            session_id=self._generate_session_id(),
-            changes=changes,
-            description=f"Found {len(groups)} duplicate groups; proposed {len(changes)} changes.",
+        return self._finalize_plan(
+            changes,
+            f"Found {len(groups)} duplicate groups; proposed {len(changes)} changes.",
+            "deduplicate",
         )
-        self._save_plan(plan, "deduplicate")
-        return plan
 
     def _extract_blocks(self, files: list[FileInfo]) -> list[CodeBlock]:
         blocks: list[CodeBlock] = []

@@ -7,10 +7,13 @@ import pytest
 from reducto.lsp.client import LSPError
 from reducto.workspace import Workspace
 
-pytestmark = pytest.mark.skipif(
-    not shutil.which("pylsp") and not shutil.which("pyright-langserver"),
-    reason="no Python LSP on PATH",
-)
+pytestmark = [
+    pytest.mark.lsp,
+    pytest.mark.skipif(
+        not shutil.which("pylsp") and not shutil.which("pyright-langserver"),
+        reason="no Python LSP on PATH",
+    ),
+]
 
 
 def test_find_references_python(tmp_path):

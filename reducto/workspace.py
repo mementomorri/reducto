@@ -8,8 +8,8 @@ from pathlib import Path
 from reducto import diff as diff_mod
 from reducto import parse, repo
 from reducto.git_safety import GitError, GitSafety
-from reducto.models import AppConfig, ComplexityMetrics, FileChange, FileInfo, Symbol
 from reducto.lsp import LSPManager, Reference
+from reducto.models import AppConfig, ComplexityMetrics, FileChange, FileInfo, Symbol
 from reducto.runner import ProjectRunner
 
 

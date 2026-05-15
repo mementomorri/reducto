@@ -1,12 +1,12 @@
 """Data models for reducto."""
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class Language(str, Enum):
+class Language(StrEnum):
     PYTHON = "python"
     JAVASCRIPT = "javascript"
     TYPESCRIPT = "typescript"
@@ -122,7 +122,7 @@ class AnalyzeResult(BaseModel):
     symbols: list[Symbol] = Field(default_factory=list)
 
 
-class ModelTier(str, Enum):
+class ModelTier(StrEnum):
     LIGHT = "light"
     MEDIUM = "medium"
     HEAVY = "heavy"

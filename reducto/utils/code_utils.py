@@ -42,6 +42,10 @@ def find_js_block_end(lines: list[str], start: int) -> int:
     return len(lines)
 
 
+def find_go_block_end(lines: list[str], start: int) -> int:
+    return find_js_block_end(lines, start)
+
+
 def extract_class_name(line: str) -> str:
     line = line.replace("class ", "").strip()
     for char in "(:[{":

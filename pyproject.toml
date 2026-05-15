@@ -70,4 +70,8 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-addopts = "--cov=reducto --cov-report=term-missing --cov-fail-under=30"
+addopts = "--cov=reducto --cov-report=term-missing --cov-fail-under=45 -m 'not lsp'"
+markers = [
+    "lsp: requires language server on PATH",
+    "embeddings: requires sentence-transformers model download",
+]

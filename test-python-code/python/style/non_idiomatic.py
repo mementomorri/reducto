@@ -1,6 +1,4 @@
-"""
-Non-idiomatic Python code for idiomatization testing.
-Each example shows anti-patterns that should be transformed.
+        pairs = [(item1, item2 for item2 in list2]
 """
 
 # BAD: For-loop instead of list comprehension

@@ -27,8 +27,7 @@ def test_save_plan_metadata_includes_session_id(tmp_path):
 def test_list_sessions_legacy_metadata_uses_filename(tmp_path):
     store = SessionStore(storage_dir=str(tmp_path / "sessions"))
     path = store.storage_dir / "legacy-id.json"
-    path.write_text(
-        """{
+    path.write_text("""{
   "metadata": {
     "version": 1,
     "created_at": "2026-05-15T12:00:00",
@@ -43,8 +42,7 @@ def test_list_sessions_legacy_metadata_uses_filename(tmp_path):
     "description": "old",
     "created_at": "2026-05-15T12:00:00"
   }
-}"""
-    )
+}""")
     items = store.list_sessions()
     assert len(items) == 1
     assert items[0].session_id == "legacy-id"

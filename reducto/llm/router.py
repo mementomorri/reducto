@@ -103,7 +103,8 @@ class LLMRouter:
 
         if self.verbose:
             logger.info(
-                f"Model selection: tier={tier.value}, prefer_local={prefer_local}, source={source}, model={model}"
+                f"Model selection: tier={tier.value}, "
+                f"prefer_local={actual_prefer_local}, source={source}, model={model}"
             )
 
         return model

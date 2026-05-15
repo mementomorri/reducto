@@ -30,3 +30,20 @@ class BaseAgent:
         if session_id in self._session_plans:
             return self._session_plans[session_id]
         return self.session_store.load_plan(session_id)
+
+    def _file_content_path(self, file) -> tuple[str, str]:
+        if hasattr(file, "content"):
+            return file.content, file.path
+        return file["content"], file["path"]
+
+    def _finalize_plan(
+        self, changes: list, description: str, command_type: str, **plan_kw
+    ) -> RefactorPlan:
+        plan = RefactorPlan(
+            session_id=self._generate_session_id(),
+            changes=changes,
+            description=description,
+            **plan_kw,
+        )
+        self._save_plan(plan, command_type)
+        return plan

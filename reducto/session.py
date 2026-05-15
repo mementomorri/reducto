@@ -6,6 +6,7 @@ Stores plans to disk so they survive sidecar restarts and can be resumed.
 
 import json
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -14,24 +15,16 @@ from reducto.models import RefactorPlan
 logger = logging.getLogger(__name__)
 
 
+@dataclass
 class SessionInfo:
     """Metadata about a stored session."""
 
-    def __init__(
-        self,
-        session_id: str,
-        created_at: datetime,
-        command_type: str,
-        file_count: int,
-        change_count: int,
-        description: str = "",
-    ):
-        self.session_id = session_id
-        self.created_at = created_at
-        self.command_type = command_type
-        self.file_count = file_count
-        self.change_count = change_count
-        self.description = description
+    session_id: str
+    created_at: datetime
+    command_type: str
+    file_count: int
+    change_count: int
+    description: str = ""
 
     def to_dict(self) -> dict:
         return {
@@ -44,7 +37,7 @@ class SessionInfo:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "SessionInfo":
+    def from_dict(cls, data: dict) -> SessionInfo:
         return cls(
             session_id=data["session_id"],
             created_at=datetime.fromisoformat(data["created_at"]),
@@ -53,9 +46,6 @@ class SessionInfo:
             change_count=data["change_count"],
             description=data.get("description", ""),
         )
-
-    def __repr__(self) -> str:
-        return f"SessionInfo({self.session_id}, {self.command_type}, {self.change_count} changes)"
 
 
 class SessionStore:
@@ -80,6 +70,14 @@ class SessionStore:
         if "session_id" in metadata:
             return metadata
         return {**metadata, "session_id": session_path.stem}
+
+    def _read_session_file(self, session_path: Path) -> dict | None:
+        try:
+            with open(session_path) as f:
+                return json.load(f)
+        except Exception as e:
+            logger.warning(f"Failed to read session {session_path}: {e}")
+            return None
 
     def save_plan(self, plan: RefactorPlan, command_type: str = "unknown") -> None:
         """
@@ -146,8 +144,9 @@ class SessionStore:
             return None
 
         try:
-            with open(session_path) as f:
-                data = json.load(f)
+            data = self._read_session_file(session_path)
+            if not data:
+                return None
 
             plan_data = data.get("plan")
             if not plan_data:
@@ -174,20 +173,15 @@ class SessionStore:
         sessions = []
 
         for session_path in self.storage_dir.glob("*.json"):
-            try:
-                with open(session_path) as f:
-                    data = json.load(f)
-
-                metadata = data.get("metadata", {})
-                if not metadata:
-                    continue
-                metadata = self._metadata_with_session_id(metadata, session_path)
-
-                info = SessionInfo.from_dict(metadata)
-                sessions.append(info)
-
-            except Exception as e:
-                logger.warning(f"Failed to read session {session_path}: {e}")
+            data = self._read_session_file(session_path)
+            if not data:
+                continue
+            metadata = data.get("metadata", {})
+            if not metadata:
+                continue
+            sessions.append(
+                SessionInfo.from_dict(self._metadata_with_session_id(metadata, session_path))
+            )
 
         # Sort by created_at, newest first
         sessions.sort(key=lambda s: s.created_at, reverse=True)
@@ -231,27 +225,19 @@ class SessionStore:
         deleted = 0
 
         for session_path in self.storage_dir.glob("*.json"):
-            try:
-                with open(session_path) as f:
-                    data = json.load(f)
-
-                metadata = data.get("metadata", {})
-                created_at_str = metadata.get("created_at")
-
-                if not created_at_str:
-                    continue
-
-                created_at = datetime.fromisoformat(created_at_str)
-
-                if created_at < cutoff:
-                    session_path.unlink()
-                    session_id = self._metadata_with_session_id(metadata, session_path)["session_id"]
-                    self._cache.pop(session_id, None)
-                    deleted += 1
-                    logger.debug(f"Deleted old session {session_id}")
-
-            except Exception as e:
-                logger.warning(f"Failed to process session {session_path}: {e}")
+            data = self._read_session_file(session_path)
+            if not data:
+                continue
+            metadata = data.get("metadata", {})
+            created_at_str = metadata.get("created_at")
+            if not created_at_str:
+                continue
+            if datetime.fromisoformat(created_at_str) < cutoff:
+                session_path.unlink()
+                session_id = self._metadata_with_session_id(metadata, session_path)["session_id"]
+                self._cache.pop(session_id, None)
+                deleted += 1
+                logger.debug(f"Deleted old session {session_id}")
 
         if deleted > 0:
             logger.info(f"Cleaned up {deleted} old sessions")
@@ -273,21 +259,13 @@ class SessionStore:
         if not session_path.exists():
             return None
 
-        try:
-            with open(session_path) as f:
-                data = json.load(f)
-
-            metadata = data.get("metadata", {})
-            if not metadata:
-                return None
-
-            return SessionInfo.from_dict(
-                self._metadata_with_session_id(metadata, session_path)
-            )
-
-        except Exception as e:
-            logger.error(f"Failed to read session info {session_id}: {e}")
+        data = self._read_session_file(session_path)
+        if not data:
             return None
+        metadata = data.get("metadata", {})
+        if not metadata:
+            return None
+        return SessionInfo.from_dict(self._metadata_with_session_id(metadata, session_path))
 
     def clear_cache(self):
         """Clear the in-memory cache."""

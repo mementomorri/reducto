@@ -22,7 +22,7 @@ jobs:
         run: pip install -e ".[dev,embeddings]"
 
       - name: Tests
-        run: pytest tests/ -v --cov-fail-under=30
+        run: pytest tests/ -v --cov-fail-under=45 -m "not lsp"
 
       - name: CLI smoke
         run: reducto --help && reducto version

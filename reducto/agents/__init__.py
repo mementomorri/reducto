@@ -7,13 +7,11 @@ from reducto.agents.deduplicator import DeduplicatorAgent
 from reducto.agents.idiomatizer import IdiomatizerAgent
 from reducto.agents.pattern import PatternAgent
 from reducto.agents.quality_checker import QualityCheckerAgent
-from reducto.agents.validator import ValidatorAgent
 
 __all__ = [
     "AnalyzerAgent",
     "DeduplicatorAgent",
     "IdiomatizerAgent",
     "PatternAgent",
-    "ValidatorAgent",
     "QualityCheckerAgent",
 ]
