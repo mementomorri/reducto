@@ -67,6 +67,13 @@ Single Python package: Typer CLI, in-process `Workspace` (repo walk, tree-sitter
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## Migrating from pre-1.0 (Go + sidecar)
+
+- Install via `pip install reducto` (no Go binary).
+- `reducto mcp` removed; tools run in-process.
+- Deduplication needs `pip install "reducto[embeddings]"`.
+- Config env prefix: `REDUCTO_*` (replaces legacy `DEHYDRATE_*`).
+
 ## License
 
 [MIT](LICENSE) © 2026 Alex Karsten

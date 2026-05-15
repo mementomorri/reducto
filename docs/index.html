@@ -1035,16 +1035,16 @@
                     </div>
                     <div class="install-card" data-animate>
                         <h3>Forge from Source</h3>
-                        <p>Requires Go 1.24+ and Python 3.10+ for the complete ritual:</p>
+                        <p>Requires Python 3.10+:</p>
                         <pre><code><span class="code-comment"># Clone the sacred texts</span>
 <span class="code-command">git clone https://github.com/alexkarsten/reducto.git</span>
 <span class="code-command">cd reducto</span>
 
-<span class="code-comment"># Prepare the reagents</span>
-<span class="code-command">pip install python/</span>
+<span class="code-comment"># Install</span>
+<span class="code-command">pip install -e ".[embeddings]"</span>
 
-<span class="code-comment"># Conjure the binary</span>
-<span class="code-command">go build -o reducto ./cmd/reducto</span></code></pre>
+<span class="code-comment"># Run</span>
+<span class="code-command">reducto analyze .</span></code></pre>
                     </div>
                 </div>
             </div>

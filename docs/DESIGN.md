@@ -1,5 +1,7 @@
 # **reducto** Engineering the Autonomous Code Compression Utility: A Professional Framework for Semantic Refactoring
 
+> **Implementation (v1.0):** Python-only CLI (`pip install reducto`). In-process `Workspace` replaces the former Go MCP server and Python sidecar. See [ARCHITECTURE.md](ARCHITECTURE.md).
+
 The contemporary software development landscape is increasingly defined by a tension between rapid feature delivery and the escalating cognitive load required to maintain expansive codebases. As projects evolve, the accumulation of technical debt, redundant logic, and non-idiomatic implementation patterns creates a barrier to developer comprehension and velocity. The introduction of agentic artificial intelligence provides a novel mechanism for addressing these challenges through autonomous, context-aware code refactoring. This report delineates the design and implementation of a local command-line interface (CLI) application engineered to explore, optimize, and compress codebases. The objective is to minimize the scope of code requiring human understanding by replacing repeating patterns and verbose structures with high-level abstractions and popular design patterns.
 
 ## **The Cognitive Crisis in Modern Software Engineering**
