@@ -1,17 +1,23 @@
 """Base agent class."""
 
+from __future__ import annotations
+
 import uuid
+from typing import TYPE_CHECKING
 
 from reducto.models import RefactorPlan
 from reducto.session import SessionStore
 from reducto.workspace import Workspace
+
+if TYPE_CHECKING:
+    from reducto.llm.router import LLMRouter
 
 
 class BaseAgent:
     def __init__(
         self,
         workspace: Workspace | None = None,
-        llm_router=None,
+        llm_router: LLMRouter | None = None,
         session_store: SessionStore | None = None,
     ):
         self.workspace = workspace

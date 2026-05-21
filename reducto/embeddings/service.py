@@ -4,6 +4,7 @@ Embedding service for semantic code analysis.
 
 import hashlib
 import logging
+from typing import Any, cast
 
 import chromadb
 
@@ -16,9 +17,9 @@ class EmbeddingService:
     def __init__(self):
         self.client: chromadb.Client | None = None
         self.collection = None
-        self.model = None
+        self.model: Any = None
         self._initialized = False
-        self._use_real_embeddings = False
+        self._use_real_embeddings: bool = False
 
     async def initialize(self, verbose: bool = False):
         if self._initialized:
@@ -92,14 +93,14 @@ class EmbeddingService:
     async def embed_text(self, text: str) -> list[float]:
         if self._use_real_embeddings and self.model:
             embedding = self.model.encode(text, convert_to_numpy=True)
-            return embedding.tolist()
+            return cast(list[float], embedding.tolist())
         else:
             return self._mock_embedding(text)
 
     async def embed_batch(self, texts: list[str]) -> list[list[float]]:
         if self._use_real_embeddings and self.model:
             embeddings = self.model.encode(texts, convert_to_numpy=True)
-            return embeddings.tolist()
+            return cast(list[list[float]], embeddings.tolist())
         else:
             return [self._mock_embedding(t) for t in texts]
 

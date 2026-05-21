@@ -107,7 +107,7 @@ class LLMRouter:
                 f"prefer_local={actual_prefer_local}, source={source}, model={model}"
             )
 
-        return model
+        return str(model)
 
     async def complete(
         self,
@@ -163,7 +163,7 @@ class LLMRouter:
                     )
                 logger.info(f"  Response: {content[:200]}...")
 
-            return content
+            return content if isinstance(content, str) else ""
         except Exception as e:
             logger.error(f"LLM call failed: {e}")
             raise

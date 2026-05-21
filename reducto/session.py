@@ -9,6 +9,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any, cast
 
 from reducto.models import RefactorPlan
 
@@ -74,7 +75,7 @@ class SessionStore:
     def _read_session_file(self, session_path: Path) -> dict | None:
         try:
             with open(session_path) as f:
-                return json.load(f)
+                return cast(dict[str, Any], json.load(f))
         except Exception as e:
             logger.warning(f"Failed to read session {session_path}: {e}")
             return None

@@ -23,6 +23,8 @@ from reducto.workspace import Workspace
 
 
 class DeduplicatorAgent(BaseAgent):
+    workspace: Workspace
+
     def __init__(
         self,
         workspace: Workspace,
