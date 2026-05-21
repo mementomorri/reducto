@@ -66,3 +66,4 @@ ENV/
 AGENTS.md
 .reducto*
 .reducto/
+ci-reports/

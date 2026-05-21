@@ -32,11 +32,17 @@ jobs:
       - name: Quality check
         run: reducto check test-python-code/python
 
+      - name: Stage reports for upload
+        run: |
+          mkdir -p ci-reports
+          cp -v .reducto/reducto-baseline-*.md ci-reports/
+          ls -la ci-reports/
+
       - name: Upload analysis reports
         uses: actions/upload-artifact@v4
         with:
           name: reducto-analysis-reports
-          path: .reducto/reducto-baseline-*.md
+          path: ci-reports/
           if-no-files-found: error
 
       - name: Job summary

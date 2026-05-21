@@ -57,4 +57,4 @@ Coverage target: `reducto/` package (minimum 45% in CI; see `pyproject.toml`).
 - `reducto analyze test-python-code/python --report` (fixture corpus)
 - `reducto check test-python-code/python`
 
-Markdown reports are uploaded as the `reducto-analysis-reports` Actions artifact (under `.reducto/reducto-baseline-*.md`).
+Markdown reports are copied to `ci-reports/` (`.reducto` is hidden and excluded by `upload-artifact` by default) and uploaded as the `reducto-analysis-reports` Actions artifact.
