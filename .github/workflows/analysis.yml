@@ -1,0 +1,51 @@
+name: Analysis
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install
+        run: pip install -e ".[embeddings]"
+
+      - name: Analyze package (dogfood)
+        run: |
+          reducto analyze reducto/ --report -v
+          test -n "$(ls -1 .reducto/reducto-baseline-*.md 2>/dev/null | head -1)"
+
+      - name: Analyze fixture corpus
+        run: |
+          reducto analyze test-python-code/python --report -v
+          test -n "$(ls -1 .reducto/reducto-baseline-*.md 2>/dev/null | head -1)"
+
+      - name: Quality check
+        run: reducto check test-python-code/python
+
+      - name: Upload analysis reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: reducto-analysis-reports
+          path: .reducto/reducto-baseline-*.md
+          if-no-files-found: error
+
+      - name: Job summary
+        if: always()
+        run: |
+          REPORT=$(ls -t .reducto/reducto-baseline-*.md 2>/dev/null | head -1)
+          {
+            echo "## reducto analysis"
+            echo "Latest report: \`$REPORT\`"
+            echo ""
+            head -80 "$REPORT"
+          } >> "$GITHUB_STEP_SUMMARY"

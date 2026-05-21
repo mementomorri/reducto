@@ -48,3 +48,13 @@ mypy reducto/ --ignore-missing-imports
 ```
 
 Coverage target: `reducto/` package (minimum 45% in CI; see `pyproject.toml`).
+
+## CI analysis job
+
+`.github/workflows/analysis.yml` runs product analysis separately from pytest:
+
+- `reducto analyze reducto/ --report` (dogfood)
+- `reducto analyze test-python-code/python --report` (fixture corpus)
+- `reducto check test-python-code/python`
+
+Markdown reports are uploaded as the `reducto-analysis-reports` Actions artifact (under `.reducto/reducto-baseline-*.md`).
