@@ -157,14 +157,6 @@ def _server_cmd(lang: Language) -> list[str] | None:
             if shutil.which(cmd[0]):
                 return cmd
         return None
-    if lang == Language.GO:
-        if shutil.which("gopls"):
-            return ["gopls", "serve"]
-        return None
-    if lang in (Language.TYPESCRIPT, Language.JAVASCRIPT):
-        if shutil.which("typescript-language-server"):
-            return ["typescript-language-server", "--stdio"]
-        return None
     return None
 
 

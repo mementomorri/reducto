@@ -8,9 +8,6 @@ from pydantic import BaseModel, Field
 
 class Language(StrEnum):
     PYTHON = "python"
-    JAVASCRIPT = "javascript"
-    TYPESCRIPT = "typescript"
-    GO = "go"
     UNKNOWN = "unknown"
 
 
@@ -171,7 +168,7 @@ class AppConfig(BaseModel):
     exclude_patterns: list[str] = Field(
         default_factory=lambda: [".git", "node_modules", "venv", "__pycache__"]
     )
-    include_patterns: list[str] = Field(default_factory=lambda: ["*.py", "*.js", "*.ts", "*.go"])
+    include_patterns: list[str] = Field(default_factory=lambda: ["*.py"])
 
 
 class AnalyzeRequest(BaseModel):
@@ -188,7 +185,6 @@ class DeduplicateRequest(BaseModel):
 class IdiomatizeRequest(BaseModel):
     path: str
     files: list[FileInfo] = Field(default_factory=list)
-    language: Language = Language.PYTHON
 
 
 class PatternRequest(BaseModel):

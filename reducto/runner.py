@@ -1,4 +1,4 @@
-"""Project test runner."""
+"""Project test runner (Python projects only)."""
 
 from __future__ import annotations
 
@@ -22,19 +22,14 @@ class ProjectRunner:
     def _exists(self, name: str) -> bool:
         return (self.path / name).exists()
 
-    def _project_type(self) -> str:
-        if self._exists("go.mod"):
-            return "go"
-        if (
+    def _is_python_project(self) -> bool:
+        return (
             self._exists("pyproject.toml")
             or self._exists("setup.py")
             or self._exists("requirements.txt")
-        ):
-            return "python"
-        if self._exists("package.json"):
-            pkg = (self.path / "package.json").read_text()
-            return "typescript" if "typescript" in pkg else "javascript"
-        return "unknown"
+            or any(self.path.glob("**/test_*.py"))
+            or self._exists("pytest.ini")
+        )
 
     def _run(self, cmd: list[str]) -> TestResult:
         proc = subprocess.run(cmd, cwd=self.path, capture_output=True, text=True, timeout=300)
@@ -47,17 +42,11 @@ class ProjectRunner:
         )
 
     def run_tests(self) -> TestResult:
-        pt = self._project_type()
-        if pt == "python":
-            cmd = (
-                ["python", "-m", "pytest", "-x", "-q"]
-                if self._exists("pytest.ini") or self._exists("pyproject.toml")
-                else ["python", "-m", "unittest", "discover", "-v"]
-            )
-        elif pt in ("javascript", "typescript"):
-            cmd = ["npm", "test"]
-        elif pt == "go":
-            cmd = ["go", "test", "./..."]
-        else:
-            return TestResult(success=True, output="No test command detected", command="")
+        if not self._is_python_project():
+            return TestResult(success=True, output="No Python test command detected", command="")
+        cmd = (
+            ["python", "-m", "pytest", "-x", "-q"]
+            if self._exists("pytest.ini") or self._exists("pyproject.toml")
+            else ["python", "-m", "unittest", "discover", "-v"]
+        )
         return self._run(cmd)

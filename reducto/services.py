@@ -21,7 +21,6 @@ from reducto.models import (
     DeduplicateRequest,
     FileInfo,
     IdiomatizeRequest,
-    Language,
     PatternRequest,
     RefactorPlan,
     RefactorResult,
@@ -64,11 +63,9 @@ class App:
         agent = DeduplicatorAgent(self.workspace, emb, self.llm, self.sessions)
         return await agent.find_duplicates(DeduplicateRequest(path=path, files=self._files()))
 
-    async def idiomatize(self, path: str, language: Language = Language.PYTHON) -> RefactorPlan:
+    async def idiomatize(self, path: str) -> RefactorPlan:
         agent = IdiomatizerAgent(self.workspace, self.llm, self.sessions)
-        return await agent.idiomatize(
-            IdiomatizeRequest(path=path, files=self._files(), language=language)
-        )
+        return await agent.idiomatize(IdiomatizeRequest(path=path, files=self._files()))
 
     async def pattern(self, pattern_name: str, path: str) -> RefactorPlan:
         agent = PatternAgent(self.workspace, self.llm, self.sessions)

@@ -2,6 +2,8 @@
 
 Requires **Python 3.14+** (matches CI and `pyproject.toml`).
 
+New contributors: start with [ONBOARDING.md](ONBOARDING.md) for environment setup, then use this file for test commands and CI mapping.
+
 ## Run tests
 
 ```bash
@@ -30,7 +32,7 @@ Shared fixtures live in `tests/conftest.py` (`fixture_repo_root`, `fixture_files
 
 | TEST_RULES | Automated test |
 |------------|----------------|
-| §1 Language recognition | `tests/scenario/test_test_rules.py::test_repo_detects_py_and_js` |
+| §1 Python-only recognition | `tests/scenario/test_test_rules.py::test_repo_detects_python_only` |
 | §1 Project mapping | `test_analyze_returns_symbols` |
 | §2 Cross-file dedup | `test_dedup_stub_plan_on_duplicate_pair` |
 | §2 Idiomatic Python | `test_idiom_list_comp` |

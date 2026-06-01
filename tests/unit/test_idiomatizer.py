@@ -3,7 +3,7 @@
 import pytest
 
 from reducto.agents.idiomatizer import IdiomatizerAgent
-from reducto.models import FileInfo, IdiomatizeRequest, Language
+from reducto.models import FileInfo, IdiomatizeRequest
 from reducto.workspace import Workspace
 
 
@@ -12,7 +12,7 @@ async def test_idiomatize_empty_files(tmp_path):
     ws = Workspace(str(tmp_path))
     agent = IdiomatizerAgent(ws)
     plan = await agent.idiomatize(
-        IdiomatizeRequest(path=str(tmp_path), files=[], language=Language.PYTHON)
+        IdiomatizeRequest(path=str(tmp_path), files=[])
     )
     assert plan.session_id
     assert isinstance(plan.changes, list)
@@ -33,7 +33,6 @@ async def test_idiomatize_list_comp_from_for_append(tmp_path):
         IdiomatizeRequest(
             path=str(tmp_path),
             files=[{"path": "build.py", "content": content}],
-            language=Language.PYTHON,
         )
     )
     assert len(plan.changes) == 1
@@ -50,7 +49,6 @@ async def test_idiomatize_skips_non_python(tmp_path):
         IdiomatizeRequest(
             path=str(tmp_path),
             files=[FileInfo(path="app.js", content=content)],
-            language=Language.JAVASCRIPT,
         )
     )
     assert plan.changes == []

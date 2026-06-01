@@ -2,6 +2,8 @@
 
 Following the principles of Test-Driven Development (TDD) for the Semantic Compression Engine, the following test suite focuses on functional behavior and user-facing requirements. These tests verify that the application correctly interacts with the filesystem, models, and version control without assuming any specific internal implementation.
 
+Automated coverage and pytest layout: [TEST_IMPLEMENTATION.md](TEST_IMPLEMENTATION.md). Maintainer setup: [ONBOARDING.md](ONBOARDING.md).
+
 ## 1. Repository Analysis and Context Mapping
 
 ### Test Case: Initial Project Mapping
@@ -9,10 +11,10 @@ Following the principles of Test-Driven Development (TDD) for the Semantic Compr
 **Scenario**: Run the tool in a directory containing multiple modules and shared utilities.
 **Expectation**: The tool must identify key classes, function signatures, and dependencies across the project. It should detect the project’s main entry points and export a summary or "map".
 
-### Test Case: Language Recognition
+### Test Case: Python-Only Recognition
 
-**Scenario**: Run the tool on a multi-language repository (e.g., Python and JavaScript).
-**Expectation**: The tool must correctly detect the syntax of both languages and apply the appropriate language-specific parsing for each file type.
+**Scenario**: Run the tool on a repository that contains `.py` files and other extensions (e.g. `.md`, `.json`).
+**Expectation**: The tool must process `.py` files with Python parsing and ignore non-Python sources.
 
 ## 2. Semantic Compression and Refactoring
 
@@ -40,7 +42,7 @@ Following the principles of Test-Driven Development (TDD) for the Semantic Compr
 
 ### Test Case: Automatic Rollback on Test Failure
 
-**Scenario**: The tool applies a refactor that causes an existing project test (e.g., pytest or npm test) to fail.
+**Scenario**: The tool applies a refactor that causes an existing project test (e.g., pytest) to fail.
 **Expectation**: Upon detecting a non-zero exit code from the test runner, the tool must warn the user and suggest reverting the file changes to the previous Git state before proceeding.
 
 ### Test Case: Human-in-the-Loop Approval

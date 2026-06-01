@@ -1,4 +1,4 @@
-"""LSP clients (Linux: pylsp/pyright-langserver, gopls, typescript-language-server)."""
+"""LSP clients for Python (pylsp, pyright-langserver)."""
 
 from reducto.lsp.client import LSPError, LSPManager, Reference
 

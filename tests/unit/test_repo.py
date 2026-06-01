@@ -8,7 +8,7 @@ from reducto.repo import detect_language, walk
 
 def test_detect_language():
     assert detect_language("foo.py") == Language.PYTHON
-    assert detect_language("bar.go") == Language.GO
+    assert detect_language("readme.md") == Language.UNKNOWN
 
 
 def test_walk_excludes_git(tmp_path: Path):

@@ -1,7 +1,7 @@
 """
 Session persistence for refactoring plans.
 
-Stores plans to disk so they survive sidecar restarts and can be resumed.
+Stores plans to disk so they can be listed, applied later, and resumed across CLI invocations.
 """
 
 import json

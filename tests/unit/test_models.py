@@ -1,4 +1,4 @@
-"""Pydantic model tests (ported from legacy ai_sidecar)."""
+"""Pydantic model tests."""
 
 from reducto.models import (
     CodeBlock,

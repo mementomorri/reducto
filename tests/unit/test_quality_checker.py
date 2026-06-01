@@ -44,5 +44,4 @@ def test_detect_language_via_repo():
     from reducto.repo import detect_language
 
     assert detect_language("a.py") == Language.PYTHON
-    assert detect_language("b.js") == Language.JAVASCRIPT
-    assert detect_language("c.go") == Language.GO
+    assert detect_language("b.js") == Language.UNKNOWN

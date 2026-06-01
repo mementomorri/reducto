@@ -26,9 +26,9 @@ from reducto.workspace import Workspace
 FIXTURE = Path(__file__).resolve().parents[2] / "test-python-code" / "python"
 
 
-def test_repo_detects_py_and_js(fixture_files):
+def test_repo_detects_python_only(fixture_files):
     langs = {detect_language(f.path) for f in fixture_files}
-    assert Language.PYTHON in langs
+    assert langs == {Language.PYTHON}
 
 
 @pytest.mark.asyncio
@@ -77,7 +77,6 @@ async def test_idiom_list_comp():
         IdiomatizeRequest(
             path=".",
             files=[FileInfo(path="b.py", content=content)],
-            language=Language.PYTHON,
         )
     )
     assert len(plan.changes) == 1

@@ -46,14 +46,7 @@ SKIP_SUFFIXES = (".min.js", ".min.css", ".lock", ".sum")
 
 
 def detect_language(path: str) -> Language:
-    ext = Path(path).suffix.lower()
-    return {
-        ".py": Language.PYTHON,
-        ".js": Language.JAVASCRIPT,
-        ".ts": Language.TYPESCRIPT,
-        ".tsx": Language.TYPESCRIPT,
-        ".go": Language.GO,
-    }.get(ext, Language.UNKNOWN)
+    return Language.PYTHON if Path(path).suffix.lower() == ".py" else Language.UNKNOWN
 
 
 def _should_exclude_dir(name: str, path: str, patterns: list[str]) -> bool:

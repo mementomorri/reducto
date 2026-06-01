@@ -14,11 +14,7 @@ from reducto.models import (
 from reducto.repo import detect_language
 from reducto.utils.code_utils import (
     extract_class_name,
-    extract_go_function_name,
-    extract_js_function_name,
     extract_python_function_name,
-    find_go_block_end,
-    find_js_block_end,
     find_python_block_end,
     to_pascal_case,
     to_snake_case,
@@ -122,34 +118,15 @@ class QualityCheckerAgent:
         for line_num, line in enumerate(lines, 1):
             stripped = line.strip()
 
-            if (
-                stripped.startswith("#")
-                or stripped.startswith("//")
-                or stripped.startswith('"""')
-                or stripped.startswith("'''")
-            ):
+            if stripped.startswith("#") or stripped.startswith('"""') or stripped.startswith("'''"):
                 continue
 
-            is_loop = any(kw in stripped for kw in ["for ", "for(", "while "])
-
-            if language == Language.PYTHON:
-                issues.extend(
-                    self._check_python_variables(
-                        file_path, line_num, line, stripped, loop_vars, common_short_vars, is_loop
-                    )
+            is_loop = any(kw in stripped for kw in ["for ", "while "])
+            issues.extend(
+                self._check_python_variables(
+                    file_path, line_num, line, stripped, loop_vars, common_short_vars, is_loop
                 )
-            elif language in (Language.JAVASCRIPT, Language.TYPESCRIPT):
-                issues.extend(
-                    self._check_js_variables(
-                        file_path, line_num, line, stripped, loop_vars, common_short_vars, is_loop
-                    )
-                )
-            elif language == Language.GO:
-                issues.extend(
-                    self._check_go_variables(
-                        file_path, line_num, line, stripped, loop_vars, common_short_vars, is_loop
-                    )
-                )
+            )
 
         return issues
 
@@ -211,77 +188,6 @@ class QualityCheckerAgent:
 
         return issues
 
-    def _check_js_variables(
-        self,
-        file_path: str,
-        line_num: int,
-        line: str,
-        stripped: str,
-        loop_vars: set,
-        common_short_vars: set,
-        is_loop: bool,
-    ) -> list[QualityIssue]:
-        issues = []
-
-        patterns = [
-            (r"\b(?:var|let|const)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)", "declaration"),
-        ]
-
-        for pattern, context in patterns:
-            matches = re.finditer(pattern, stripped)
-            for match in matches:
-                var_name = match.group(1)
-                if self._is_bad_variable_name(var_name, is_loop, loop_vars, common_short_vars):
-                    issues.append(
-                        QualityIssue(
-                            file=file_path,
-                            line=line_num,
-                            issue_type="bad_variable_name",
-                            severity="warning",
-                            message=f"Variable '{var_name}' has an unclear name",
-                            symbol=var_name,
-                            suggestion="Consider using a more descriptive name",
-                        )
-                    )
-
-        return issues
-
-    def _check_go_variables(
-        self,
-        file_path: str,
-        line_num: int,
-        line: str,
-        stripped: str,
-        loop_vars: set,
-        common_short_vars: set,
-        is_loop: bool,
-    ) -> list[QualityIssue]:
-        issues = []
-
-        patterns = [
-            (r"\b([a-zA-Z_][a-zA-Z0-9_]*)\s*:=", "short_declaration"),
-            (r"\bvar\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+", "var_declaration"),
-        ]
-
-        for pattern, context in patterns:
-            matches = re.finditer(pattern, stripped)
-            for match in matches:
-                var_name = match.group(1)
-                if self._is_bad_variable_name(var_name, is_loop, loop_vars, common_short_vars):
-                    issues.append(
-                        QualityIssue(
-                            file=file_path,
-                            line=line_num,
-                            issue_type="bad_variable_name",
-                            severity="warning",
-                            message=f"Variable '{var_name}' has an unclear name",
-                            symbol=var_name,
-                            suggestion="Consider using a more descriptive name",
-                        )
-                    )
-
-        return issues
-
     def _is_bad_variable_name(
         self, name: str, is_loop: bool, loop_vars: set, common_short_vars: set
     ) -> bool:
@@ -315,34 +221,15 @@ class QualityCheckerAgent:
     def _check_function_length(
         self, file_path: str, lines: list[str], language: Language
     ) -> list[QualityIssue]:
-        configs = {
-            Language.PYTHON: (
-                lambda s: s.startswith("def ") or s.startswith("async def "),
-                extract_python_function_name,
-                find_python_block_end,
-            ),
-            Language.JAVASCRIPT: (
-                lambda s: "function " in s or (s.startswith("const ") and "=>" in s),
-                extract_js_function_name,
-                find_js_block_end,
-            ),
-            Language.TYPESCRIPT: (
-                lambda s: "function " in s or (s.startswith("const ") and "=>" in s),
-                extract_js_function_name,
-                find_js_block_end,
-            ),
-            Language.GO: (
-                lambda s: s.startswith("func "),
-                extract_go_function_name,
-                find_go_block_end,
-            ),
-        }
-        cfg = configs.get(language)
-        if not cfg:
+        if language != Language.PYTHON:
             return []
-        is_fn_start, extract_name, block_end_fn = cfg
+        is_fn_start = lambda s: s.startswith("def ") or s.startswith("async def ")
         return self._function_length_issues(
-            file_path, lines, is_fn_start, extract_name, block_end_fn
+            file_path,
+            lines,
+            is_fn_start,
+            extract_python_function_name,
+            find_python_block_end,
         )
 
     def _function_length_issues(
@@ -384,21 +271,7 @@ class QualityCheckerAgent:
     ) -> list[QualityIssue]:
         issues = []
 
-        complexity_keywords = [
-            "if ",
-            "elif ",
-            "else:",
-            "for ",
-            "while ",
-            "case ",
-            "catch ",
-            "except ",
-            "switch ",
-            "&&",
-            "||",
-            "and ",
-            "or ",
-        ]
+        complexity_keywords = ["if ", "elif ", "else:", "for ", "while ", "except ", "and ", "or "]
 
         for line_num, line in enumerate(lines, 1):
             complexity = sum(line.count(kw) for kw in complexity_keywords)
