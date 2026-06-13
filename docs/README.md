@@ -31,8 +31,6 @@ pip install -e ".[embeddings]"
 | `embeddings` | Semantic deduplication (ChromaDB + sentence-transformers) |
 | `dev` | pytest, ruff, black, mypy (contributors) |
 
-**LSP (optional):** `find_references` can use `pylsp` or `pyright-langserver` on PATH.
-
 ### Quick install script
 
 ```bash
@@ -61,7 +59,7 @@ reducto analyze .              # Complexity hotspots and symbols
 reducto deduplicate .          # Similar blocks → proposed utils modules
 reducto idiomatize .           # Pythonic heuristics (comprehensions, etc.)
 reducto pattern factory .      # Design-pattern templates
-reducto check .                # Naming, length, complexity hints
+reducto check .                # Naming, function length, cyclomatic-complexity issues
 reducto apply <session-id>     # Apply a saved plan
 reducto sessions list          # List saved sessions
 ```
@@ -97,7 +95,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md).
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Modules and request flows |
 | [TEST_IMPLEMENTATION.md](TEST_IMPLEMENTATION.md) | pytest and CI |
 | [TEST_RULES.md](TEST_RULES.md) | Acceptance criteria |
-| [DESIGN.md](DESIGN.md) | Product vision and roadmap |
+| [DESIGN.md](DESIGN.md) | Product vision (long-form) |
+| [ROADMAP.md](../ROADMAP.md) | What's shipped vs planned |
 
 ## License
 

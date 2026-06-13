@@ -21,12 +21,17 @@ jobs:
 
       - name: Analyze package (dogfood)
         run: |
-          reducto analyze reducto/ --report -v
+          OUT=$(reducto analyze reducto/ --report -v)
+          echo "$OUT"
+          echo "$OUT" | grep -qv "Symbols: 0" || { echo "PARSE REGRESSION: zero symbols"; exit 1; }
           test -n "$(ls -1 .reducto/reducto-baseline-*.md 2>/dev/null | head -1)"
 
       - name: Analyze fixture corpus
         run: |
-          reducto analyze test-python-code/python --report -v
+          OUT=$(reducto analyze test-python-code/python --report -v)
+          echo "$OUT"
+          echo "$OUT" | grep -qv "Symbols: 0" || { echo "PARSE REGRESSION: zero symbols"; exit 1; }
+          echo "$OUT" | grep -Eq "Hotspots: [1-9]" || { echo "no hotspots detected"; exit 1; }
           test -n "$(ls -1 .reducto/reducto-baseline-*.md 2>/dev/null | head -1)"
 
       - name: Quality check

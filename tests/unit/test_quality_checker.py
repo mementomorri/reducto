@@ -40,6 +40,19 @@ async def test_check_quality_flags_bad_variable_name():
     assert any(i.symbol == "qq" for i in bad)
 
 
+@pytest.mark.asyncio
+async def test_check_flags_high_complexity_function():
+    body = "\n".join(f"    if x{i}:\n        return {i}" for i in range(12))
+    content = f"def busy(x0):\n{body}\n    return 0\n"
+    report = await QualityCheckerAgent().check_quality(
+        [FileInfo(path="hc.py", content=content)], path="."
+    )
+    cc = [i for i in report.issues if i.issue_type == "high_complexity_function"]
+    assert cc
+    assert cc[0].symbol == "busy"
+    assert cc[0].severity in ("critical", "warning")
+
+
 def test_detect_language_via_repo():
     from reducto.repo import detect_language
 

@@ -7,6 +7,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+from reducto import parse
 from reducto.models import (
     FileInfo,
     Language,
@@ -82,7 +83,7 @@ class QualityCheckerAgent:
             if not content or language == Language.UNKNOWN:
                 continue
 
-            issues = await self._check_file(file_path, content, language)
+            issues = await self._check_file(file_path, content)
             report.issues.extend(issues)
 
         report.issues.sort(
@@ -95,22 +96,17 @@ class QualityCheckerAgent:
 
         return report
 
-    async def _check_file(
-        self, file_path: str, content: str, language: Language
-    ) -> list[QualityIssue]:
-        issues = []
+    async def _check_file(self, file_path: str, content: str) -> list[QualityIssue]:
         lines = content.split("\n")
-
-        issues.extend(self._check_variable_names(file_path, lines, language))
-        issues.extend(self._check_function_length(file_path, lines, language))
-        issues.extend(self._check_complexity(file_path, lines, language))
-        issues.extend(self._check_naming_conventions(file_path, lines, language))
-
+        issues = []
+        issues.extend(self._check_variable_names(file_path, lines))
+        issues.extend(self._check_function_length(file_path, lines))
+        issues.extend(self._check_function_complexity(file_path, content))
+        issues.extend(self._check_complexity(file_path, lines))
+        issues.extend(self._check_naming_conventions(file_path, lines))
         return issues
 
-    def _check_variable_names(
-        self, file_path: str, lines: list[str], language: Language
-    ) -> list[QualityIssue]:
+    def _check_variable_names(self, file_path: str, lines: list[str]) -> list[QualityIssue]:
         issues = []
         loop_vars = {"i", "j", "k", "n", "x", "y", "z", "_"}
         common_short_vars = {"a", "b", "c", "n", "m", "p", "q"}
@@ -151,7 +147,7 @@ class QualityCheckerAgent:
         for pattern, context in var_patterns:
             matches = re.finditer(pattern, stripped)
             for match in matches:
-                var_name = match.group(1) if context != "parameter" else match.group(1)
+                var_name = match.group(1)
 
                 if context == "parameter":
                     params = match.group(1)
@@ -218,35 +214,14 @@ class QualityCheckerAgent:
 
         return False
 
-    def _check_function_length(
-        self, file_path: str, lines: list[str], language: Language
-    ) -> list[QualityIssue]:
-        if language != Language.PYTHON:
-            return []
-        is_fn_start = lambda s: s.startswith("def ") or s.startswith("async def ")
-        return self._function_length_issues(
-            file_path,
-            lines,
-            is_fn_start,
-            extract_python_function_name,
-            find_python_block_end,
-        )
-
-    def _function_length_issues(
-        self,
-        file_path: str,
-        lines: list[str],
-        is_fn_start,
-        extract_name,
-        block_end_fn,
-    ) -> list[QualityIssue]:
+    def _check_function_length(self, file_path: str, lines: list[str]) -> list[QualityIssue]:
         issues = []
         for i, line in enumerate(lines):
             stripped = line.strip()
-            if not is_fn_start(stripped):
+            if not (stripped.startswith("def ") or stripped.startswith("async def ")):
                 continue
-            func_name = extract_name(stripped) or "anonymous"
-            func_length = block_end_fn(lines, i) - i
+            func_name = extract_python_function_name(stripped) or "anonymous"
+            func_length = find_python_block_end(lines, i) - i
             if func_length <= self.max_function_lines:
                 continue
             severity = "critical" if func_length > self.max_function_lines * 2 else "warning"
@@ -266,9 +241,35 @@ class QualityCheckerAgent:
             )
         return issues
 
-    def _check_complexity(
-        self, file_path: str, lines: list[str], language: Language
-    ) -> list[QualityIssue]:
+    def _check_function_complexity(self, file_path: str, content: str) -> list[QualityIssue]:
+        issues = []
+        lines = content.split("\n")
+        for sym in parse.get_symbols(content, file_path):
+            if sym.type not in ("function", "method"):
+                continue
+            end = min(sym.end_line, len(lines))
+            block = "\n".join(lines[sym.start_line - 1 : end])
+            cc = parse.get_complexity(block).cyclomatic_complexity
+            if cc < self.max_complexity:
+                continue
+            severity = "critical" if cc >= self.max_complexity * 2 else "warning"
+            issues.append(
+                QualityIssue(
+                    file=file_path,
+                    line=sym.start_line,
+                    issue_type="high_complexity_function",
+                    severity=severity,
+                    message=(
+                        f"Function '{sym.name}' has cyclomatic complexity {cc} "
+                        f"(max {self.max_complexity})"
+                    ),
+                    symbol=sym.name,
+                    suggestion="Consider extracting branches into smaller functions",
+                )
+            )
+        return issues
+
+    def _check_complexity(self, file_path: str, lines: list[str]) -> list[QualityIssue]:
         issues = []
 
         complexity_keywords = ["if ", "elif ", "else:", "for ", "while ", "except ", "and ", "or "]
@@ -290,43 +291,36 @@ class QualityCheckerAgent:
 
         return issues
 
-    def _check_naming_conventions(
-        self, file_path: str, lines: list[str], language: Language
-    ) -> list[QualityIssue]:
+    def _check_naming_conventions(self, file_path: str, lines: list[str]) -> list[QualityIssue]:
         issues = []
-
         for line_num, line in enumerate(lines, 1):
             stripped = line.strip()
-
-            if language == Language.PYTHON:
-                if stripped.startswith("def "):
-                    func_name = extract_python_function_name(stripped)
-                    if func_name and not func_name[0].islower() and not func_name.startswith("_"):
-                        issues.append(
-                            QualityIssue(
-                                file=file_path,
-                                line=line_num,
-                                issue_type="naming_convention",
-                                severity="info",
-                                message=f"Function '{func_name}' should use snake_case",
-                                symbol=func_name,
-                                suggestion=f"Consider renaming to '{to_snake_case(func_name)}'",
-                            )
+            if stripped.startswith("def "):
+                func_name = extract_python_function_name(stripped)
+                if func_name and not func_name[0].islower() and not func_name.startswith("_"):
+                    issues.append(
+                        QualityIssue(
+                            file=file_path,
+                            line=line_num,
+                            issue_type="naming_convention",
+                            severity="info",
+                            message=f"Function '{func_name}' should use snake_case",
+                            symbol=func_name,
+                            suggestion=f"Consider renaming to '{to_snake_case(func_name)}'",
                         )
-
-                elif stripped.startswith("class "):
-                    class_name = extract_class_name(stripped)
-                    if class_name and not class_name[0].isupper():
-                        issues.append(
-                            QualityIssue(
-                                file=file_path,
-                                line=line_num,
-                                issue_type="naming_convention",
-                                severity="info",
-                                message=f"Class '{class_name}' should use PascalCase",
-                                symbol=class_name,
-                                suggestion=f"Consider renaming to '{to_pascal_case(class_name)}'",
-                            )
+                    )
+            elif stripped.startswith("class "):
+                class_name = extract_class_name(stripped)
+                if class_name and not class_name[0].isupper():
+                    issues.append(
+                        QualityIssue(
+                            file=file_path,
+                            line=line_num,
+                            issue_type="naming_convention",
+                            severity="info",
+                            message=f"Class '{class_name}' should use PascalCase",
+                            symbol=class_name,
+                            suggestion=f"Consider renaming to '{to_pascal_case(class_name)}'",
                         )
-
+                    )
         return issues

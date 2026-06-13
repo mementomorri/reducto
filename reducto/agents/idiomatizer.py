@@ -5,7 +5,7 @@ Idiomatizer agent for transforming code to idiomatic patterns (Python heuristics
 import re
 
 from reducto.agents.base import BaseAgent
-from reducto.models import FileChange, IdiomatizeRequest, Language, ModelTier, RefactorPlan
+from reducto.models import FileChange, IdiomatizeRequest, Language, RefactorPlan
 from reducto.repo import detect_language
 from reducto.session import SessionStore
 
@@ -78,14 +78,3 @@ class IdiomatizerAgent(BaseAgent):
             list_comp,
             "Convert for-loop with append to list comprehension",
         )
-
-    async def suggest_idiomatic_version(
-        self,
-        code: str,
-        language: Language,
-        tier: ModelTier = ModelTier.MEDIUM,
-    ) -> str:
-        if not self.llm:
-            return "LLM not available for idiomatization"
-        goal = f"Transform this code to be more idiomatic {language.value}"
-        return await self.llm.suggest_refactor(code, language.value, goal, tier=tier)

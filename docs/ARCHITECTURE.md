@@ -1,6 +1,6 @@
 # reducto Architecture
 
-Python 3.14+ CLI for semantic compression of **Python source code**. One process: Typer CLI, in-process `Workspace`, optional embeddings and Python LSP.
+Python 3.14+ CLI for semantic compression of **Python source code**. One process: Typer CLI, in-process `Workspace`, optional embeddings.
 
 ## Overview
 
@@ -22,7 +22,7 @@ User
 |--------|------|
 | `cli.py` | Commands, git dirty check, asyncio bridge, session subcommands |
 | `services.py` | `App`: orchestrates agents, apply, embedding lazy init |
-| `workspace.py` | Files, symbols, diffs, git, tests, LSP |
+| `workspace.py` | Files, symbols, diffs, git, tests |
 | `repo.py` | Walk repo; include `*.py` by default; `detect_language` → Python or unknown |
 | `parse.py` | Tree-sitter Python symbols and complexity heuristics |
 | `diff.py` | Apply unified diffs |
@@ -35,7 +35,6 @@ User
 | `agents/*` | Planning agents (idiomatize is Python-only) |
 | `llm/router.py` | LiteLLM tiers |
 | `embeddings/service.py` | ChromaDB similarity for deduplication |
-| `lsp/` | Optional Python `find_references` |
 
 ## Request flows
 
@@ -70,6 +69,5 @@ Git checkpoint → apply diffs → run pytest (if project looks like Python) →
 | LLM | LiteLLM |
 | VCS | GitPython |
 | Dedup | ChromaDB, sentence-transformers |
-| LSP (optional) | pylsp, pyright-langserver |
 
 See [ONBOARDING.md](ONBOARDING.md) for maintainer workflows.

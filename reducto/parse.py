@@ -5,14 +5,16 @@ from __future__ import annotations
 from functools import lru_cache
 
 import tree_sitter_python as tspython
-from tree_sitter import Language, Parser
+from tree_sitter import Language as TSLanguage
+from tree_sitter import Parser
 
 from reducto.models import ComplexityMetrics, Language, Symbol
+
 
 @lru_cache(maxsize=1)
 def _parser() -> Parser | None:
     try:
-        language = Language(tspython.language())
+        language = TSLanguage(tspython.language())
         return Parser(language)
     except Exception:
         return None

@@ -44,7 +44,7 @@ class PatternAgent(BaseAgent):
                     )
                 )
             else:
-                module = self._extract_module_name(path)
+                module = _module_name(path)
                 changes.append(
                     FileChange(
                         path=f"{subdir}/{module}_{pattern}.py",
@@ -78,13 +78,6 @@ class PatternAgent(BaseAgent):
                     )
                 )
         return changes
-
-    def _extract_module_name(self, path: str) -> str:
-        import os
-
-        basename = os.path.basename(path)
-        name, _ = os.path.splitext(basename)
-        return name
 
 
 def _has_complex_conditionals(content: str) -> bool:

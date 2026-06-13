@@ -8,19 +8,9 @@ from pathlib import Path
 
 from reducto.models import FileInfo, Language
 
-DEFAULT_EXCLUDE_DIRS = {
-    ".git",
-    ".venv",
-    "venv",
-    "node_modules",
-    "__pycache__",
-    ".pytest_cache",
-    "dist",
-    "build",
-    "target",
-    ".idea",
-    ".vscode",
-}
+# Dot-directories (.git, .venv, .reducto, .pytest_cache, ...) are excluded by the
+# leading-dot rule in _should_exclude_dir; only non-dot dirs need listing here.
+DEFAULT_EXCLUDE_DIRS = {"venv", "node_modules", "__pycache__", "dist", "build", "target"}
 BINARY_EXTS = {
     ".png",
     ".jpg",
@@ -50,7 +40,7 @@ def detect_language(path: str) -> Language:
 
 
 def _should_exclude_dir(name: str, path: str, patterns: list[str]) -> bool:
-    if name in DEFAULT_EXCLUDE_DIRS:
+    if name in DEFAULT_EXCLUDE_DIRS or name.startswith("."):
         return True
     return any(name == p or p in path for p in patterns)
 

@@ -88,6 +88,7 @@ def deduplicate(
     model: str = typer.Option("", "--model"),
     prefer_remote: bool = typer.Option(False, "--prefer-remote"),
 ):
+    """Find duplicate code blocks and propose shared utility modules."""
     cfg = _get_cfg(config, verbose, model, True, prefer_remote)
     cfg.pre_approve = yes
     if not dry_run:
@@ -116,6 +117,7 @@ def idiomatize(
     verbose: bool = typer.Option(False, "--verbose", "-v"),
     model: str = typer.Option("", "--model"),
 ):
+    """Rewrite code to idiomatic Python (e.g. list comprehensions)."""
     cfg = _get_cfg(config, verbose, model, True, False)
     cfg.pre_approve = yes
     if not dry_run:
@@ -139,6 +141,7 @@ def pattern(
     yes: bool = typer.Option(False, "--yes"),
     config: Path | None = typer.Option(None, "--config", "-c"),
 ):
+    """Apply or suggest a design pattern (factory|strategy|observer|singleton)."""
     cfg = _get_cfg(config, False, "", True, False)
     cfg.pre_approve = yes
     if not dry_run:
@@ -161,6 +164,7 @@ def check(
     config: Path | None = typer.Option(None, "--config", "-c"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ):
+    """Report naming, function-length, and cyclomatic-complexity issues."""
     cfg = _get_cfg(config, verbose, "", True, False)
     svc = App(str(path.resolve()), cfg)
     result = _run(svc.check(str(path)))
@@ -176,6 +180,7 @@ def apply(
     yes: bool = typer.Option(False, "--yes"),
     config: Path | None = typer.Option(None, "--config", "-c"),
 ):
+    """Apply a previously saved plan by session ID."""
     cfg = _get_cfg(config, False, "", True, False)
     cfg.pre_approve = yes
     root = path.resolve()
@@ -196,6 +201,7 @@ def report_cmd(
     session_id: str = typer.Argument("", help="Session ID or empty for latest"),
     config: Path | None = typer.Option(None, "--config", "-c"),
 ):
+    """Print a saved report (latest, or the given session ID)."""
     cfg = _get_cfg(config, False, "", True, False)
     text = Reporter(cfg).load_latest(session_id)
     typer.echo(text)
@@ -211,6 +217,7 @@ def _session_store(path: Path) -> SessionStore:
 
 @sessions_app.command("list")
 def sessions_list(path: Path = typer.Option(Path("."), "--path", "-C", help="Repository path")):
+    """List saved refactoring sessions."""
     store = _session_store(path)
     items = store.list_sessions()
     if not items:
@@ -227,6 +234,7 @@ def sessions_show(
     session_id: str,
     path: Path = typer.Option(Path("."), "--path", "-C", help="Repository path"),
 ):
+    """Show the changes in a saved session."""
     plan = _session_store(path).load_plan(session_id)
     if not plan:
         typer.echo("Not found", err=True)
@@ -241,12 +249,14 @@ def sessions_cleanup(
     days: int = typer.Option(7, help="Delete sessions older than N days"),
     path: Path = typer.Option(Path("."), "--path", "-C", help="Repository path"),
 ):
+    """Delete sessions older than N days."""
     n = _session_store(path).cleanup_old_sessions(days)
     typer.echo(f"Deleted {n} session(s)")
 
 
 @app.command()
 def version():
+    """Show the reducto version."""
     typer.echo(f"reducto {__version__}")
 
 

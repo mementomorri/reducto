@@ -216,43 +216,6 @@ Provide a detailed analysis."""
             prompt, tier=tier, prefer_local=prefer_local, model_override=model_override
         )
 
-    async def suggest_refactor(
-        self,
-        code: str,
-        language: str,
-        goal: str,
-        tier: ModelTier = ModelTier.MEDIUM,
-        model_override: str | None = None,
-        prefer_local: bool | None = None,
-    ) -> str:
-        """Suggest refactoring for a code block."""
-        system_prompt = f"""You are an expert {language} developer. 
-Provide refactoring suggestions that:
-- Follow idiomatic {language} patterns
-- Improve code readability
-- Reduce complexity
-- Maintain functional equivalence"""
-
-        prompt = f"""Code to refactor:
-```
-{code}
-```
-
-Refactoring goal: {goal}
-
-Provide:
-1. A brief explanation of what should be changed
-2. The refactored code
-3. Why this is an improvement"""
-
-        return await self.complete(
-            prompt,
-            tier=tier,
-            system_prompt=system_prompt,
-            prefer_local=prefer_local,
-            model_override=model_override,
-        )
-
     def update_config(self, tier: str, config: dict[str, Any]) -> None:
         """Update configuration for a specific tier."""
         if tier not in [t.value for t in ModelTier]:

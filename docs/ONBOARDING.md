@@ -22,7 +22,7 @@ Non-Python files are ignored by the walker and report `Language.UNKNOWN` if refe
 | `reducto/` | Shipped package |
 | `reducto/cli.py` | Typer entrypoint |
 | `reducto/services.py` | `App` orchestration |
-| `reducto/workspace.py` | Repo I/O, parse, apply, git, tests, LSP |
+| `reducto/workspace.py` | Repo I/O, parse, apply, git, tests |
 | `reducto/parse.py` | tree-sitter-python |
 | `reducto/agents/` | Analyzer, deduplicator, idiomatizer, pattern, quality |
 | `tests/` | pytest (unit, scenario, e2e) |
@@ -37,10 +37,10 @@ python3.14 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev,embeddings]"
 reducto version
-pytest tests/ -v -m "not lsp"
+pytest tests/ -v
 ```
 
-Optional: Ollama, cloud API keys, `pylsp` or `pyright-langserver` for LSP tests.
+Optional: Ollama or cloud API keys for LLM-backed routing.
 
 ### Configuration
 
@@ -61,7 +61,7 @@ exclude_patterns: [".git", "node_modules", "venv", "__pycache__"]
 | `deduplicate` | `deduplicate` | Embeddings on Python functions/methods |
 | `idiomatize` | `idiomatize` | Python heuristics only |
 | `pattern` | `pattern` | Template `.py` modules |
-| `check` | `check` | Python naming/length/complexity |
+| `check` | `check` | Naming, function length, per-function cyclomatic complexity |
 | `apply` | `apply_plan` | Session JSON → safe apply |
 
 ## Extending
