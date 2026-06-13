@@ -9,24 +9,23 @@ Status legend: **done** = shipped & tested · **planned** = intended next · **i
 
 | Capability | Status | Notes |
 |------------|--------|-------|
-| `analyze` — tree-sitter symbols + cyclomatic-complexity hotspots | done | Static, no LLM. |
+| `analyze` — tree-sitter symbols + cyclomatic & cognitive-complexity hotspots | done | Static, no LLM. Cognitive complexity is nesting-weighted, distinct from cyclomatic. |
 | `deduplicate` — embedding clustering → proposed `utils/<symbol>_dedup.py` | done | Proposes a shared module; does not yet rewrite call sites. |
-| `idiomatize` — for-append → list comprehension | done | Line-level heuristic, Python-only. |
+| `idiomatize` — list/dict comprehensions, filtered comprehensions, `is None` | done | Line-level heuristics, Python-only. Optional LLM rewrite when `--model` is set. |
 | `pattern` — factory/strategy/observer/singleton templates | done | Generates template modules / wraps global state. |
 | `check` — naming, function length, per-function cyclomatic complexity | done | `critical` when CC ≥ 2× threshold. |
+| Unified thresholds | done | `check` and `analyze` both read `AppConfig.complexity_thresholds`. |
 | Git checkpoint + test-driven rollback | done | All-or-nothing apply; reverts if pytest fails. |
 | Session persistence / replay (`apply`, `sessions`, `report`) | done | JSON under `.reducto/sessions/`. |
-| LiteLLM model routing (local Ollama / remote) | done | Scaffolding; not yet invoked by commands. |
+| LiteLLM model routing (local Ollama / remote) | done | Wired into `idiomatize` as an opt-in suggestion path. |
 | Config: `.reducto.yaml` + `REDUCTO_*` env overrides | done | |
 
 ## Near-term (planned)
 
-- **Wire LLM-driven refactors** — call the existing `LLMRouter.complete` from `idiomatize`/`pattern` for suggestions beyond the current heuristics.
-- **More idioms** — cover the patterns in `test-python-code/python/style/non_idiomatic.py`: `enumerate`, f-strings, context managers, dict/set comprehensions, `itertools`.
-- **Real deduplication** — rewrite call sites to import the extracted util, not just emit the module.
-- **Pattern refactoring** — transform existing code into the pattern, not only generate a template.
-- **Cognitive complexity** — compute it distinctly from cyclomatic (currently equal).
-- **Unify thresholds** — drive `check` and `analyze` from a single `AppConfig.complexity_thresholds`.
+- **More idioms** — remaining patterns in `test-python-code/python/style/non_idiomatic.py`: `enumerate` (drop `range(len(...))`), f-strings, `with`-statement context managers, `itertools.product`, `str.join`. (Done so far: list/dict/filtered comprehensions, `is None`.)
+- **LLM in `pattern`** — extend the opt-in LLM path from `idiomatize` to `pattern` for code-aware suggestions.
+- **Real deduplication** — rewrite call sites to import the extracted util, not just emit the module. *Deferred:* safe only with cross-file symbol resolution + test coverage; blind apply on test-less code can change behaviour.
+- **Pattern refactoring** — transform existing code into the pattern, not only generate a template. *Deferred:* needs the LLM path above to be reliable.
 
 ## Mid-term
 

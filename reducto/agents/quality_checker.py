@@ -9,6 +9,7 @@ from typing import Any
 
 from reducto import parse
 from reducto.models import (
+    ComplexityThresholds,
     FileInfo,
     Language,
 )
@@ -68,8 +69,9 @@ class QualityReport:
 class QualityCheckerAgent:
     def __init__(self, workspace: Workspace | None = None):
         self.workspace = workspace
-        self.max_function_lines = 50
-        self.max_complexity = 10
+        thresholds = workspace.cfg.complexity_thresholds if workspace else ComplexityThresholds()
+        self.max_function_lines = thresholds.lines_of_code
+        self.max_complexity = thresholds.cyclomatic_complexity
         self.min_variable_name_length = 2
 
     async def check_quality(self, files: list[FileInfo], path: str) -> QualityReport:

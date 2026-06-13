@@ -1,19 +1,38 @@
 """Idiomatizer agent smoke test."""
 
+import ast
+
 import pytest
 
 from reducto.agents.idiomatizer import IdiomatizerAgent
-from reducto.models import FileInfo, IdiomatizeRequest
+from reducto.models import AppConfig, FileInfo, IdiomatizeRequest
 from reducto.workspace import Workspace
+
+
+async def _idioms(tmp_path, content: str, llm=None, model: str = ""):
+    cfg = AppConfig()
+    cfg.model = model
+    agent = IdiomatizerAgent(Workspace(str(tmp_path), cfg), llm)
+    return await agent.idiomatize(
+        IdiomatizeRequest(path=str(tmp_path), files=[FileInfo(path="f.py", content=content)])
+    )
+
+
+class _FakeLLM:
+    def __init__(self, reply: str):
+        self.reply = reply
+        self.called = False
+
+    async def complete(self, prompt, system_prompt=None, **kw):
+        self.called = True
+        return self.reply
 
 
 @pytest.mark.asyncio
 async def test_idiomatize_empty_files(tmp_path):
     ws = Workspace(str(tmp_path))
     agent = IdiomatizerAgent(ws)
-    plan = await agent.idiomatize(
-        IdiomatizeRequest(path=str(tmp_path), files=[])
-    )
+    plan = await agent.idiomatize(IdiomatizeRequest(path=str(tmp_path), files=[]))
     assert plan.session_id
     assert isinstance(plan.changes, list)
 
@@ -52,3 +71,63 @@ async def test_idiomatize_skips_non_python(tmp_path):
         )
     )
     assert plan.changes == []
+
+
+@pytest.mark.asyncio
+async def test_idiomatize_dict_comp(tmp_path):
+    content = "def f(ns):\n    result = {}\n    for n in ns:\n        result[n] = n * n\n    return result\n"
+    plan = await _idioms(tmp_path, content)
+    assert any("dict comprehension" in c.description for c in plan.changes)
+    assert any("{n: n * n for n in ns}" in c.modified for c in plan.changes)
+
+
+@pytest.mark.asyncio
+async def test_idiomatize_filtered_list_comp(tmp_path):
+    content = "def f(ns):\n    out = []\n    for n in ns:\n        if n > 0:\n            out.append(n)\n    return out\n"
+    plan = await _idioms(tmp_path, content)
+    assert any("if n > 0" in c.modified and "for n in ns" in c.modified for c in plan.changes)
+
+
+@pytest.mark.asyncio
+async def test_idiomatize_nested_paren_append_is_valid(tmp_path):
+    content = (
+        "def f(a, b):\n    out = []\n    for x in a:\n        out.append((x, b))\n    return out\n"
+    )
+    plan = await _idioms(tmp_path, content)
+    assert plan.changes
+    ast.parse(plan.changes[0].modified.strip())  # nested parens preserved -> valid Python
+    assert "(x, b)" in plan.changes[0].modified
+
+
+@pytest.mark.asyncio
+async def test_idiomatize_compare_to_none(tmp_path):
+    plan = await _idioms(tmp_path, "def f(x):\n    if x == None:\n        return 1\n    return 2\n")
+    assert any("is None" in c.modified for c in plan.changes)
+
+
+@pytest.mark.asyncio
+async def test_dict_comp_skipped_for_list_index(tmp_path):
+    # arr is a list (no {} init) -> must NOT be rewritten as a dict comprehension.
+    content = (
+        "def f(n):\n    arr = [0] * n\n    for i in range(n):\n        arr[i] = i\n    return arr\n"
+    )
+    plan = await _idioms(tmp_path, content)
+    assert not any("dict comprehension" in c.description for c in plan.changes)
+
+
+@pytest.mark.asyncio
+async def test_idiomatize_llm_path_when_model_set(tmp_path):
+    llm = _FakeLLM("```python\ndef f():\n    return 1\n```")
+    content = "def f():\n    x = []\n    for i in range(3):\n        x.append(i)\n    return x\n"
+    plan = await _idioms(tmp_path, content, llm=llm, model="test/model")
+    assert llm.called
+    assert any(
+        c.description == "LLM idiomatic rewrite" and "return 1" in c.modified for c in plan.changes
+    )
+
+
+@pytest.mark.asyncio
+async def test_idiomatize_skips_llm_without_model(tmp_path):
+    llm = _FakeLLM("unused")
+    await _idioms(tmp_path, "x = 1\n", llm=llm, model="")
+    assert llm.called is False

@@ -80,8 +80,13 @@ def _python_block_end(lines: list[str], start: int) -> int:
     return len(lines)
 
 
+_NESTERS = ("if ", "elif ", "for ", "while ", "with ", "except")
+
+
 def get_complexity(content: str) -> ComplexityMetrics:
+    """Cyclomatic (decision-point count) and cognitive (nesting-weighted) complexity."""
     metrics = ComplexityMetrics(lines_of_code=max(1, content.count("\n") + 1))
+    base_indent: int | None = None
     for line in content.split("\n"):
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
@@ -89,4 +94,10 @@ def get_complexity(content: str) -> ComplexityMetrics:
         for kw in ("if ", "elif ", "for ", "while ", "and ", "or "):
             if kw in stripped:
                 metrics.cyclomatic_complexity += 1
+        if base_indent is None:
+            base_indent = len(line) - len(line.lstrip())
+        depth = max(0, (len(line) - len(line.lstrip()) - base_indent) // 4 - 1)
+        if stripped.startswith(_NESTERS) or stripped.startswith("else:"):
+            metrics.cognitive_complexity += 1 + depth
+        metrics.cognitive_complexity += stripped.count(" and ") + stripped.count(" or ")
     return metrics

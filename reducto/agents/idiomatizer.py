@@ -10,6 +10,16 @@ from reducto.repo import detect_language
 from reducto.session import SessionStore
 
 
+def _strip_code_fence(text: str) -> str:
+    """Remove a leading ```python / ``` fence and trailing ``` from an LLM reply."""
+    lines = text.strip().splitlines()
+    if lines and lines[0].startswith("```"):
+        lines = lines[1:]
+    if lines and lines[-1].startswith("```"):
+        lines = lines[:-1]
+    return "\n".join(lines).strip()
+
+
 class IdiomatizerAgent(BaseAgent):
     def __init__(self, workspace=None, llm_router=None, session_store: SessionStore | None = None):
         super().__init__(workspace, llm_router, session_store)
@@ -28,7 +38,39 @@ class IdiomatizerAgent(BaseAgent):
         content, path = self._file_content_path(file)
         if detect_language(path) != Language.PYTHON:
             return []
+        if self._llm_enabled():
+            change = await self._llm_suggestion(content, path)
+            if change:
+                return [change]
         return self._idiomatize_python(content, path)
+
+    def _llm_enabled(self) -> bool:
+        # Opt-in: only when the user selected a model and a router is wired.
+        return bool(self.llm and self.workspace and self.workspace.cfg.model)
+
+    async def _llm_suggestion(self, content: str, path: str) -> FileChange | None:
+        if self.llm is None:
+            return None
+        prompt = (
+            "Rewrite the following Python module to be more idiomatic and concise "
+            "without changing behaviour. Return ONLY the complete rewritten module, no prose.\n\n"
+            f"```python\n{content}\n```"
+        )
+        try:
+            raw = await self.llm.complete(
+                prompt, system_prompt="You are an expert Python engineer."
+            )
+        except Exception:
+            return None
+        code = _strip_code_fence(raw)
+        if not code or code.strip() == content.strip():
+            return None
+        return FileChange(
+            path=path,
+            original=content,
+            modified=code if code.endswith("\n") else code + "\n",
+            description="LLM idiomatic rewrite",
+        )
 
     def _idiomatize_python(self, content: str, path: str) -> list[FileChange]:
         changes = []
@@ -48,9 +90,62 @@ class IdiomatizerAgent(BaseAgent):
         return changes
 
     def _try_python_idiom(self, line: str, lines: list[str], idx: int) -> tuple | None:
+        return (
+            self._filtered_list_comp(lines, idx)
+            or self._dict_comp(lines, idx)
+            or self._simple_list_comp(lines, idx)
+            or self._compare_to_none(lines, idx)
+        )
+
+    def _simple_list_comp(self, lines: list[str], idx: int) -> tuple | None:
         if self._is_for_append_pattern(lines, idx):
             return self._convert_to_list_comp(lines, idx)
         return None
+
+    def _filtered_list_comp(self, lines: list[str], idx: int) -> tuple | None:
+        if idx + 2 >= len(lines):
+            return None
+        for_m = re.match(r"for\s+(\w+)\s+in\s+(.+?):", lines[idx].strip())
+        if_m = re.match(r"if\s+(.+?):", lines[idx + 1].strip())
+        app_m = re.match(r"(\w+)\.append\((.+)\)", lines[idx + 2].strip())
+        if not (for_m and if_m and app_m):
+            return None
+        indent = len(lines[idx]) - len(lines[idx].lstrip())
+        comp = (
+            f"{' ' * indent}{app_m.group(1)} = "
+            f"[{app_m.group(2)} for {for_m.group(1)} in {for_m.group(2)} if {if_m.group(1)}]"
+        )
+        return (
+            "\n".join(lines[idx : idx + 3]),
+            comp,
+            "Convert filtered for-loop to list comprehension",
+        )
+
+    def _dict_comp(self, lines: list[str], idx: int) -> tuple | None:
+        if idx + 1 >= len(lines):
+            return None
+        for_m = re.match(r"for\s+(\w+)\s+in\s+(.+?):", lines[idx].strip())
+        assign = re.match(r"(\w+)\[(.+?)\]\s*=\s*(.+)", lines[idx + 1].strip())
+        if not (for_m and assign):
+            return None
+        d = assign.group(1)
+        # Only a dict literal supports comprehension rewrite; lists use index assignment too.
+        if not any(re.match(r"\s*" + re.escape(d) + r"\s*=\s*\{\}\s*$", ln) for ln in lines[:idx]):
+            return None
+        indent = len(lines[idx]) - len(lines[idx].lstrip())
+        comp = (
+            f"{' ' * indent}{d} = "
+            f"{{{assign.group(2)}: {assign.group(3)} for {for_m.group(1)} in {for_m.group(2)}}}"
+        )
+        return f"{lines[idx]}\n{lines[idx + 1]}", comp, "Convert for-loop to dict comprehension"
+
+    def _compare_to_none(self, lines: list[str], idx: int) -> tuple | None:
+        line = lines[idx]
+        new = re.sub(r"==\s*None", "is None", line)
+        new = re.sub(r"!=\s*None", "is not None", new)
+        if new == line:
+            return None
+        return line, new, "Use 'is'/'is not' to compare with None"
 
     def _is_for_append_pattern(self, lines: list[str], idx: int) -> bool:
         if idx + 1 >= len(lines):
@@ -66,7 +161,7 @@ class IdiomatizerAgent(BaseAgent):
         for_match = re.match(r"for\s+(\w+)\s+in\s+(.+?):", for_line.strip())
         if not for_match:
             return None
-        append_match = re.match(r"(\w+)\.append\((.+?)\)", append_line)
+        append_match = re.match(r"(\w+)\.append\((.+)\)", append_line)
         if not append_match:
             return None
         var, iterable = for_match.group(1), for_match.group(2)

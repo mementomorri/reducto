@@ -53,6 +53,19 @@ async def test_check_flags_high_complexity_function():
     assert cc[0].severity in ("critical", "warning")
 
 
+@pytest.mark.asyncio
+async def test_check_uses_config_thresholds(tmp_path):
+    from reducto.models import AppConfig
+    from reducto.workspace import Workspace
+
+    cfg = AppConfig()
+    cfg.complexity_thresholds.cyclomatic_complexity = 2
+    agent = QualityCheckerAgent(Workspace(str(tmp_path), cfg))
+    content = "def f(a):\n    if a:\n        return 1\n    if a:\n        return 2\n"
+    report = await agent.check_quality([FileInfo(path="f.py", content=content)], path=".")
+    assert any(i.issue_type == "high_complexity_function" for i in report.issues)
+
+
 def test_detect_language_via_repo():
     from reducto.repo import detect_language
 
