@@ -10,16 +10,6 @@ from reducto.repo import detect_language
 from reducto.session import SessionStore
 
 
-def _strip_code_fence(text: str) -> str:
-    """Remove a leading ```python / ``` fence and trailing ``` from an LLM reply."""
-    lines = text.strip().splitlines()
-    if lines and lines[0].startswith("```"):
-        lines = lines[1:]
-    if lines and lines[-1].startswith("```"):
-        lines = lines[:-1]
-    return "\n".join(lines).strip()
-
-
 class IdiomatizerAgent(BaseAgent):
     def __init__(self, workspace=None, llm_router=None, session_store: SessionStore | None = None):
         super().__init__(workspace, llm_router, session_store)
@@ -39,38 +29,16 @@ class IdiomatizerAgent(BaseAgent):
         if detect_language(path) != Language.PYTHON:
             return []
         if self._llm_enabled():
-            change = await self._llm_suggestion(content, path)
+            change = await self._llm_rewrite(
+                content,
+                path,
+                "Rewrite the following Python module to be more idiomatic and concise "
+                "without changing behaviour.",
+                "LLM idiomatic rewrite",
+            )
             if change:
                 return [change]
         return self._idiomatize_python(content, path)
-
-    def _llm_enabled(self) -> bool:
-        # Opt-in: only when the user selected a model and a router is wired.
-        return bool(self.llm and self.workspace and self.workspace.cfg.model)
-
-    async def _llm_suggestion(self, content: str, path: str) -> FileChange | None:
-        if self.llm is None:
-            return None
-        prompt = (
-            "Rewrite the following Python module to be more idiomatic and concise "
-            "without changing behaviour. Return ONLY the complete rewritten module, no prose.\n\n"
-            f"```python\n{content}\n```"
-        )
-        try:
-            raw = await self.llm.complete(
-                prompt, system_prompt="You are an expert Python engineer."
-            )
-        except Exception:
-            return None
-        code = _strip_code_fence(raw)
-        if not code or code.strip() == content.strip():
-            return None
-        return FileChange(
-            path=path,
-            original=content,
-            modified=code if code.endswith("\n") else code + "\n",
-            description="LLM idiomatic rewrite",
-        )
 
     def _idiomatize_python(self, content: str, path: str) -> list[FileChange]:
         changes = []
@@ -95,7 +63,41 @@ class IdiomatizerAgent(BaseAgent):
             or self._dict_comp(lines, idx)
             or self._simple_list_comp(lines, idx)
             or self._compare_to_none(lines, idx)
+            or self._truthiness(lines, idx)
+            or self._or_chain_to_in(lines, idx)
         )
+
+    @staticmethod
+    def _is_boolean_line(line: str) -> bool:
+        return line.strip().startswith(("if ", "elif ", "while "))
+
+    def _truthiness(self, lines: list[str], idx: int) -> tuple | None:
+        line = lines[idx]
+        if not self._is_boolean_line(line):
+            return None
+        new = re.sub(r"len\(([^()]+)\)\s*>\s*0", r"\1", line)
+        new = re.sub(r"len\(([^()]+)\)\s*==\s*0", r"not \1", new)
+        if new == line:
+            return None
+        return line, new, "Use truthiness instead of a len() comparison"
+
+    def _or_chain_to_in(self, lines: list[str], idx: int) -> tuple | None:
+        line = lines[idx]
+        m = re.match(r"(\s*)(if|elif|while)\s+(.+?):\s*$", line)
+        if not m:
+            return None
+        parts = m.group(3).split(" or ")
+        if len(parts) < 2:
+            return None
+        var, values = None, []
+        for part in parts:
+            pm = re.match(r"\s*([\w.]+)\s*==\s*(.+?)\s*$", part)
+            if not pm or (var is not None and pm.group(1) != var):
+                return None
+            var = pm.group(1)
+            values.append(pm.group(2).strip())
+        new = f"{m.group(1)}{m.group(2)} {var} in ({', '.join(values)}):"
+        return line, new, "Use 'in' for repeated equality checks"
 
     def _simple_list_comp(self, lines: list[str], idx: int) -> tuple | None:
         if self._is_for_append_pattern(lines, idx):

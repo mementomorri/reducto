@@ -11,8 +11,8 @@ Status legend: **done** = shipped & tested · **planned** = intended next · **i
 |------------|--------|-------|
 | `analyze` — tree-sitter symbols + cyclomatic & cognitive-complexity hotspots | done | Static, no LLM. Cognitive complexity is nesting-weighted, distinct from cyclomatic. |
 | `deduplicate` — embedding clustering → proposed `utils/<symbol>_dedup.py` | done | Proposes a shared module; does not yet rewrite call sites. |
-| `idiomatize` — list/dict comprehensions, filtered comprehensions, `is None` | done | Line-level heuristics, Python-only. Optional LLM rewrite when `--model` is set. |
-| `pattern` — factory/strategy/observer/singleton templates | done | Generates template modules / wraps global state. |
+| `idiomatize` — comprehensions (list/dict/filtered), `is None`, `len()` truthiness, `==`-chain → `in` | done | Line-level heuristics, Python-only. Optional LLM rewrite when `--model` is set. |
+| `pattern` — factory/strategy/observer/singleton templates | done | Generates template modules / wraps global state; opt-in LLM refactor of the matched file when `--model` is set. |
 | `check` — naming, function length, per-function cyclomatic complexity | done | `critical` when CC ≥ 2× threshold. |
 | Unified thresholds | done | `check` and `analyze` both read `AppConfig.complexity_thresholds`. |
 | Git checkpoint + test-driven rollback | done | All-or-nothing apply; reverts if pytest fails. |
@@ -22,10 +22,8 @@ Status legend: **done** = shipped & tested · **planned** = intended next · **i
 
 ## Near-term (planned)
 
-- **More idioms** — remaining patterns in `test-python-code/python/style/non_idiomatic.py`: `enumerate` (drop `range(len(...))`), f-strings, `with`-statement context managers, `itertools.product`, `str.join`. (Done so far: list/dict/filtered comprehensions, `is None`.)
-- **LLM in `pattern`** — extend the opt-in LLM path from `idiomatize` to `pattern` for code-aware suggestions.
-- **Real deduplication** — rewrite call sites to import the extracted util, not just emit the module. *Deferred:* safe only with cross-file symbol resolution + test coverage; blind apply on test-less code can change behaviour.
-- **Pattern refactoring** — transform existing code into the pattern, not only generate a template. *Deferred:* needs the LLM path above to be reliable.
+- **More idioms (heuristic tail)** — remaining patterns in `test-python-code/python/style/non_idiomatic.py` that need multi-line body rewrites: `enumerate` (drop `range(len(...))`), f-strings, `with`-statement context managers, `itertools.product`, `str.join`. These are better handled holistically by the opt-in LLM rewrite path; only add brittle regex versions if there is clear demand. (Done: list/dict/filtered comprehensions, `is None`, `len()` truthiness, `==`-chain → `in`.)
+- **Real deduplication** — rewrite call sites to import the extracted util, not just emit the module. *Deferred:* safe only with cross-file symbol resolution + test coverage; the fixture duplicates have different names and the extracted module has no reliable import path. Safe interim options: rewrite only when duplicates share a name, or gate behind an explicit `--rewrite` flag.
 
 ## Mid-term
 

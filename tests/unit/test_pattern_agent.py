@@ -5,7 +5,19 @@ from pathlib import Path
 import pytest
 
 from reducto.agents.pattern import PatternAgent
-from reducto.models import FileInfo, PatternRequest
+from reducto.models import AppConfig, FileInfo, PatternRequest
+from reducto.workspace import Workspace
+
+
+class _FakeLLM:
+    def __init__(self, reply: str):
+        self.reply = reply
+        self.called = False
+
+    async def complete(self, prompt, system_prompt=None, **kw):
+        self.called = True
+        return self.reply
+
 
 FIXTURE = (
     Path(__file__).resolve().parents[2]
@@ -66,3 +78,22 @@ async def test_observer_pattern_on_event_keywords():
 async def test_unknown_pattern_returns_no_changes():
     plan = await _apply("banana", "x = 1\n")
     assert plan.changes == []
+
+
+@pytest.mark.asyncio
+async def test_pattern_llm_refactor_when_model_set(tmp_path):
+    cfg = AppConfig()
+    cfg.model = "test/model"
+    content = FIXTURE.read_text(encoding="utf-8")  # triggers the strategy detector
+    llm = _FakeLLM("```python\n# refactored\nclass S:\n    pass\n```")
+    agent = PatternAgent(Workspace(str(tmp_path), cfg), llm)
+    plan = await agent.apply_pattern(
+        PatternRequest(
+            pattern="strategy", path=str(tmp_path), files=[FileInfo(path="c.py", content=content)]
+        )
+    )
+    assert llm.called
+    assert any(
+        c.description == "LLM strategy refactor" and "refactored" in c.modified
+        for c in plan.changes
+    )

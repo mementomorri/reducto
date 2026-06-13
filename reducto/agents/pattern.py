@@ -34,6 +34,17 @@ class PatternAgent(BaseAgent):
             content, path = self._file_content_path(file)
             if not detect(content):
                 continue
+            if self._llm_enabled():
+                change = await self._llm_rewrite(
+                    content,
+                    path,
+                    f"Refactor this Python module to use the {pattern} design pattern "
+                    "idiomatically, preserving behaviour.",
+                    f"LLM {pattern} refactor",
+                )
+                if change:
+                    changes.append(change)
+                    continue
             if pattern == "singleton":
                 changes.append(
                     FileChange(

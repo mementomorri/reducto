@@ -131,3 +131,32 @@ async def test_idiomatize_skips_llm_without_model(tmp_path):
     llm = _FakeLLM("unused")
     await _idioms(tmp_path, "x = 1\n", llm=llm, model="")
     assert llm.called is False
+
+
+@pytest.mark.asyncio
+async def test_idiomatize_len_truthiness(tmp_path):
+    plan = await _idioms(
+        tmp_path, "def f(items):\n    if len(items) > 0:\n        return 1\n    return 0\n"
+    )
+    assert any(c.modified.strip() == "if items:" for c in plan.changes)
+
+
+@pytest.mark.asyncio
+async def test_idiomatize_len_zero_truthiness(tmp_path):
+    plan = await _idioms(tmp_path, "def f(xs):\n    while len(xs) == 0:\n        return 1\n")
+    assert any("while not xs:" in c.modified for c in plan.changes)
+
+
+@pytest.mark.asyncio
+async def test_idiomatize_or_chain_to_in(tmp_path):
+    plan = await _idioms(
+        tmp_path, 'def f(d):\n    if d == "Sat" or d == "Sun":\n        return 1\n    return 0\n'
+    )
+    assert any('d in ("Sat", "Sun")' in c.modified for c in plan.changes)
+
+
+@pytest.mark.asyncio
+async def test_truthiness_left_alone_outside_boolean_context(tmp_path):
+    # len(x) > 0 as a returned value (not an if/while line) must not be rewritten.
+    plan = await _idioms(tmp_path, "def f(x):\n    result = len(x) > 0\n    return result\n")
+    assert not any("truthiness" in c.description for c in plan.changes)
