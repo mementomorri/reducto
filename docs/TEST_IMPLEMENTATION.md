@@ -19,7 +19,7 @@ test-python-code/`.
 
 | Path | Scope |
 |------|--------|
-| `tests/unit/` | Agents, repo, diff, parse, git, workspace, session |
+| `tests/unit/` | Agents, repo, diff, parse, git, workspace, session, LLM router |
 | `tests/scenario/` | Scenarios mapped to [TEST_RULES.md](TEST_RULES.md) |
 | `tests/e2e/` | CLI smoke against `test-python-code/python` |
 | `test-python-code/` | Fixture corpus (not shipped); used by unit/e2e tests |
@@ -39,6 +39,18 @@ Shared fixtures live in `tests/conftest.py` (`fixture_repo_root`, `fixture_files
 | §5 Report | `test_reporter_writes_markdown` |
 | §6 CLI continuity | `tests/e2e/test_cli_smoke.py` |
 
+## Apply-safety regression tests
+
+These lock the apply/rollback guarantees described in [SAFETY.md](SAFETY.md):
+
+| Guarantee | Test |
+|-----------|------|
+| Idiomatize apply lands at correct lines; docstring intact | `tests/unit/test_apply_idiomatize.py` |
+| No valid `.py` becomes invalid after `idiomatize --yes` | `tests/e2e/test_cli_smoke.py::test_idiomatize_never_breaks_valid_python` |
+| Context mismatch / truncation drift raises `DiffError` | `tests/unit/test_diff.py` |
+| Invalid Python / create-over-existing / non-git failure roll back | `tests/unit/test_workspace.py` |
+| LLM tier/local/remote routing | `tests/unit/test_router.py` |
+
 ## Lint
 
 ```bash
@@ -47,7 +59,7 @@ black --check reducto/
 mypy reducto/ --ignore-missing-imports
 ```
 
-Coverage target: `reducto/` package (minimum 60% in CI; see `pyproject.toml`).
+Coverage target: `reducto/` package (minimum 60% in CI; see `pyproject.toml`). Current: ~73% across 105 tests.
 
 ## CI analysis job
 

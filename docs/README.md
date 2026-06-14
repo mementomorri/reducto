@@ -68,10 +68,10 @@ reducto sessions list          # List saved sessions
 
 | Command | What the plan contains |
 |---------|-------------------------|
-| `deduplicate` | Embeddings find similar functions/methods; proposes `utils/<symbol>_dedup.py`. Does **not** rewrite call sites yet. |
+| `deduplicate` | Embeddings find similar functions/methods; proposes `utils/<symbol>_dedup.py` (suggestion only — does **not** rewrite call sites). |
 | `pattern` | Advisory templates under `strategies/`, `factories/`, etc. (or in-file singleton). |
-| `idiomatize` | Line-level Python heuristics (e.g. list comprehensions). |
-| `apply` | Applies diffs via git checkpoint; rolls back if pytest fails. |
+| `idiomatize` | Line-level Python heuristics (e.g. list comprehensions); applied as one whole-file change per file. |
+| `apply` | All-or-nothing: git checkpoint (or in-memory snapshot), context-validated diffs, post-apply `ast.parse`, pytest; rolls back on any failure. See [SAFETY.md](SAFETY.md). |
 
 ### Flags
 
@@ -93,6 +93,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md).
 |-----|-------------|
 | [ONBOARDING.md](ONBOARDING.md) | Setup, layout, CI, extension points |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Modules and request flows |
+| [SAFETY.md](SAFETY.md) | Apply/rollback safety model and guarantees |
 | [TEST_IMPLEMENTATION.md](TEST_IMPLEMENTATION.md) | pytest and CI |
 | [TEST_RULES.md](TEST_RULES.md) | Acceptance criteria |
 | [DESIGN.md](DESIGN.md) | Product vision (long-form) |

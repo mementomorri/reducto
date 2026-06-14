@@ -125,30 +125,6 @@ class ModelTier(StrEnum):
     HEAVY = "heavy"
 
 
-class ModelConfig(BaseModel):
-    local_model: str = ""
-    remote_model: str = ""
-    provider: str = "ollama"
-    api_key: str | None = None
-    base_url: str | None = None
-
-
-class ModelsConfig(BaseModel):
-    light: ModelConfig = Field(
-        default_factory=lambda: ModelConfig(local_model="llama3.2:3b", remote_model="gpt-4o-mini")
-    )
-    medium: ModelConfig = Field(
-        default_factory=lambda: ModelConfig(
-            local_model="qwen2.5:32b", remote_model="claude-3-5-sonnet-20241022"
-        )
-    )
-    heavy: ModelConfig = Field(
-        default_factory=lambda: ModelConfig(
-            local_model="deepseek-coder-v2", remote_model="claude-3-5-sonnet-20241022"
-        )
-    )
-
-
 class ComplexityThresholds(BaseModel):
     cyclomatic_complexity: int = 10
     cognitive_complexity: int = 15
@@ -156,7 +132,6 @@ class ComplexityThresholds(BaseModel):
 
 
 class AppConfig(BaseModel):
-    models: ModelsConfig = Field(default_factory=ModelsConfig)
     complexity_thresholds: ComplexityThresholds = Field(default_factory=ComplexityThresholds)
     pre_approve: bool = False
     commit_changes: bool = False

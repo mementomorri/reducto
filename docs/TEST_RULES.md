@@ -50,6 +50,11 @@ Automated coverage and pytest layout: [TEST_IMPLEMENTATION.md](TEST_IMPLEMENTATI
 **Scenario**: User requests a compression operation.
 **Expectation**: The tool must present a "Plan" mode showing a side-by-side diff of proposed changes and wait for a user confirmation (e.g., "y/n") before editing files in-place. Or proceed without approval if command flag with pre-approval is set.
 
+### Test Case: Non-Destructive Apply
+
+**Scenario**: Apply a plan that would land an edit somewhere other than the top of a file, that no longer matches the on-disk file, that yields invalid Python, or that creates a module whose path already exists.
+**Expectation**: Edits must land at their true location (no file ever made invalid that was valid before); a diff whose context does not match must fail rather than apply blindly; any syntactically broken result must roll the whole batch back even on a repo with no tests; and a "create" change must never overwrite or prepend into an existing file. The all-or-nothing rollback holds on both git and non-git targets. (See [SAFETY.md](SAFETY.md).)
+
 ## 4. Model Orchestration and Performance
 
 ### Test Case: Model Provider Switching

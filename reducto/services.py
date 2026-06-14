@@ -103,10 +103,13 @@ def _change_to_diff(change) -> str:
         lines = change.modified.splitlines()
         body = "\n".join(f"+{ln}" for ln in lines)
         return f"--- /dev/null\n+++ b/{change.path}\n@@ -0,0 +1,{len(lines)} @@\n{body}"
+    # Split on "\n" (not splitlines) so difflib's 1-based line numbers line up
+    # exactly with diff.apply_unified_diff's split("\n") — context validation then
+    # passes when disk == original and fails loudly on real drift.
     diff = list(
         difflib.unified_diff(
-            change.original.splitlines(),
-            change.modified.splitlines(),
+            change.original.split("\n"),
+            change.modified.split("\n"),
             fromfile=f"a/{change.path}",
             tofile=f"b/{change.path}",
             lineterm="",

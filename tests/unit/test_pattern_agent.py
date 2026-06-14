@@ -81,6 +81,24 @@ async def test_unknown_pattern_returns_no_changes():
 
 
 @pytest.mark.asyncio
+async def test_autodetect_writes_advisory_files_not_source():
+    # Empty pattern → auto-detect. Suggestions go to NEW advisory modules, never
+    # original="" against the source file (which would prepend a template into it).
+    content = FIXTURE.read_text(encoding="utf-8")
+    plan = await PatternAgent().apply_pattern(
+        PatternRequest(
+            pattern="",
+            path=str(FIXTURE.parent),
+            files=[FileInfo(path="complex_conditionals.py", content=content)],
+        )
+    )
+    assert plan.changes
+    assert all(c.path != "complex_conditionals.py" for c in plan.changes)
+    assert any(c.path.startswith("strategies/") for c in plan.changes)
+    assert all(c.original == "" for c in plan.changes)
+
+
+@pytest.mark.asyncio
 async def test_pattern_llm_refactor_when_model_set(tmp_path):
     cfg = AppConfig()
     cfg.model = "test/model"

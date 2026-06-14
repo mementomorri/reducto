@@ -138,7 +138,8 @@ async def test_idiomatize_len_truthiness(tmp_path):
     plan = await _idioms(
         tmp_path, "def f(items):\n    if len(items) > 0:\n        return 1\n    return 0\n"
     )
-    assert any(c.modified.strip() == "if items:" for c in plan.changes)
+    # Whole-file change now (see ROADMAP P0): assert the rewritten line is present.
+    assert any("    if items:\n" in c.modified for c in plan.changes)
 
 
 @pytest.mark.asyncio

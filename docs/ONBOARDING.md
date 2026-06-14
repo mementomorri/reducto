@@ -4,6 +4,7 @@ Guide for engineers maintaining **reducto** — a Python CLI that refactors **Py
 
 - Vision: [DESIGN.md](DESIGN.md)
 - Architecture: [ARCHITECTURE.md](ARCHITECTURE.md)
+- Apply safety model: [SAFETY.md](SAFETY.md)
 - User guide: [README.md](README.md)
 - Testing: [TEST_IMPLEMENTATION.md](TEST_IMPLEMENTATION.md), [TEST_RULES.md](TEST_RULES.md)
 
@@ -91,6 +92,6 @@ reducto deduplicate test-python-code/python --dry-run
 | CLI | `reducto/cli.py` |
 | Empty plan | `reducto/agents/*` |
 | Parse/symbols | `reducto/parse.py`, `reducto/repo.py` |
-| Apply/rollback | `reducto/workspace.py`, `runner.py` |
+| Apply/rollback | `reducto/workspace.py`, `diff.py`, `runner.py` (see [SAFETY.md](SAFETY.md)) |
 | LLM | `reducto/llm/router.py` |
 | Sessions | `.reducto/sessions/`, `session.py` |

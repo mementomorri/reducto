@@ -39,3 +39,16 @@ async def test_dedup_plan_uses_utils_stub_path(tmp_path):
     assert plan.changes
     assert plan.changes[0].path == "utils/validate_email_dedup.py"
     assert plan.changes[0].original == ""
+    # P1: honest labeling — it suggests, it does not rewrite call sites.
+    assert "suggestion only" in plan.changes[0].description
+    assert "not rewritten" in plan.description
+
+
+@pytest.mark.asyncio
+async def test_dedup_warns_when_embeddings_unavailable(tmp_path):
+    emb = MagicMock()
+    emb.is_using_real_embeddings = False  # extra not installed / model failed to load
+    agent = DeduplicatorAgent(Workspace(str(tmp_path)), emb)
+    plan = await agent.find_duplicates(DeduplicateRequest(path=str(tmp_path), files=[]))
+    assert plan.changes == []
+    assert "embeddings" in plan.description.lower()

@@ -1,7 +1,16 @@
 """E2E smoke tests for the reducto CLI (hermetic — never mutate the tracked corpus)."""
 
+import ast
 import subprocess
 import sys
+
+
+def _parses(path) -> bool:
+    try:
+        ast.parse(path.read_text(encoding="utf-8"))
+        return True
+    except SyntaxError:
+        return False
 
 
 def _run_cli(*args: str) -> subprocess.CompletedProcess:
@@ -35,6 +44,20 @@ def test_check_sample_repo(sample_repo):
 def test_idiomatize_sample_repo(sample_repo):
     r = _run_cli("idiomatize", str(sample_repo), "--yes")
     assert r.returncode == 0
+
+
+def test_idiomatize_never_breaks_valid_python(sample_repo):
+    # ROADMAP P0 guard: the apply path used to drop snippet edits at line 1 and
+    # corrupt files. No file that parsed before may fail to parse after.
+    py_files = [p for p in sample_repo.rglob("*.py") if ".reducto" not in p.parts]
+    valid_before = {p for p in py_files if _parses(p)}
+    assert valid_before  # corpus has real Python to protect
+
+    r = _run_cli("idiomatize", str(sample_repo), "--yes")
+    assert r.returncode == 0
+
+    regressions = [str(p) for p in valid_before if not _parses(p)]
+    assert not regressions, f"idiomatize corrupted valid files: {regressions}"
 
 
 def test_deduplicate_sample_repo(sample_repo):

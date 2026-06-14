@@ -16,18 +16,22 @@ class IdiomatizerAgent(BaseAgent):
 
     async def idiomatize(self, request: IdiomatizeRequest) -> RefactorPlan:
         changes = []
+        idioms = 0
         for file in request.files:
-            changes.extend(await self._idiomatize_file(file))
+            change, count = await self._idiomatize_file(file)
+            if change:
+                changes.append(change)
+                idioms += count
         return self._finalize_plan(
             changes,
-            f"Found {len(changes)} opportunities for idiomatic improvements.",
+            f"Found {idioms} opportunities for idiomatic improvements in {len(changes)} file(s).",
             "idiomatize",
         )
 
-    async def _idiomatize_file(self, file) -> list[FileChange]:
+    async def _idiomatize_file(self, file) -> tuple[FileChange | None, int]:
         content, path = self._file_content_path(file)
         if detect_language(path) != Language.PYTHON:
-            return []
+            return None, 0
         if self._llm_enabled():
             change = await self._llm_rewrite(
                 content,
@@ -37,25 +41,42 @@ class IdiomatizerAgent(BaseAgent):
                 "LLM idiomatic rewrite",
             )
             if change:
-                return [change]
+                return change, 1
         return self._idiomatize_python(content, path)
 
-    def _idiomatize_python(self, content: str, path: str) -> list[FileChange]:
-        changes = []
+    def _idiomatize_python(self, content: str, path: str) -> tuple[FileChange | None, int]:
+        """Collect every idiom as a line span and emit one whole-file change.
+
+        Spans are applied to a copy of the file in reverse so earlier line
+        numbers stay valid, and the resulting diff is file-relative (the old
+        per-snippet changes produced diffs that applied at line 1 — see ROADMAP P0).
+        """
         lines = content.split("\n")
-        for i, line in enumerate(lines):
-            result = self._try_python_idiom(line, lines, i)
+        spans = []  # (start, end, replacement, description)
+        i = 0
+        while i < len(lines):
+            result = self._try_python_idiom(lines[i], lines, i)
             if result:
                 original, modified, description = result
-                changes.append(
-                    FileChange(
-                        path=path,
-                        original=original,
-                        modified=modified,
-                        description=f"Line {i+1}: {description}",
-                    )
-                )
-        return changes
+                consumed = original.count("\n") + 1
+                spans.append((i, i + consumed, modified, f"L{i + 1}: {description}"))
+                i += consumed
+            else:
+                i += 1
+        if not spans:
+            return None, 0
+        new_lines = list(lines)
+        for start, end, replacement, _ in reversed(spans):
+            new_lines[start:end] = replacement.split("\n")
+        return (
+            FileChange(
+                path=path,
+                original=content,
+                modified="\n".join(new_lines),
+                description="; ".join(desc for *_, desc in spans),
+            ),
+            len(spans),
+        )
 
     def _try_python_idiom(self, line: str, lines: list[str], idx: int) -> tuple | None:
         return (

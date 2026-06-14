@@ -25,6 +25,9 @@ from reducto.workspace import Workspace
 
 logger = logging.getLogger(__name__)
 
+# Unpronounceable letter/digit-salad names, e.g. "a1b2", "x3yz".
+_GIBBERISH_NAME_RE = re.compile(r"^(?:[a-z]+\d+[a-z]+\d+|x\d+[a-z]+\d*)")
+
 
 @dataclass
 class QualityIssue:
@@ -119,10 +122,9 @@ class QualityCheckerAgent:
             if stripped.startswith("#") or stripped.startswith('"""') or stripped.startswith("'''"):
                 continue
 
-            is_loop = any(kw in stripped for kw in ["for ", "while "])
             issues.extend(
                 self._check_python_variables(
-                    file_path, line_num, line, stripped, loop_vars, common_short_vars, is_loop
+                    file_path, line_num, line, stripped, loop_vars, common_short_vars
                 )
             )
 
@@ -136,7 +138,6 @@ class QualityCheckerAgent:
         stripped: str,
         loop_vars: set,
         common_short_vars: set,
-        is_loop: bool,
     ) -> list[QualityIssue]:
         issues = []
 
@@ -156,7 +157,7 @@ class QualityCheckerAgent:
                     for param in params.split(","):
                         param = param.strip().split("=")[0].split(":")[0].strip()
                         if param and self._is_bad_variable_name(
-                            param, is_loop, loop_vars, common_short_vars
+                            param, loop_vars, common_short_vars
                         ):
                             issues.append(
                                 QualityIssue(
@@ -170,7 +171,7 @@ class QualityCheckerAgent:
                                 )
                             )
                 elif var_name and self._is_bad_variable_name(
-                    var_name, is_loop, loop_vars, common_short_vars
+                    var_name, loop_vars, common_short_vars
                 ):
                     issues.append(
                         QualityIssue(
@@ -186,35 +187,17 @@ class QualityCheckerAgent:
 
         return issues
 
-    def _is_bad_variable_name(
-        self, name: str, is_loop: bool, loop_vars: set, common_short_vars: set
-    ) -> bool:
-        if not name or name.startswith("_"):
-            return False
-
-        if is_loop and name in loop_vars:
-            return False
-
-        if not name[0].isalpha() and name[0] != "_":
-            return False
-
-        has_letters = any(c.isalpha() for c in name)
-        has_numbers = any(c.isdigit() for c in name)
-        letter_ratio = sum(1 for c in name if c.isalpha()) / len(name) if name else 0
-
-        if has_letters and has_numbers and letter_ratio < 0.4:
-            return True
-
-        if len(name) <= 2 and name not in loop_vars and name not in common_short_vars:
-            return True
-
-        if re.match(r"^[a-z]+\d+[a-z]+\d+", name.lower()):
-            return True
-
-        if re.match(r"^x\d+[a-z]+\d*", name.lower()):
-            return True
-
-        return False
+    def _is_bad_variable_name(self, name: str, loop_vars: set, common_short_vars: set) -> bool:
+        if not name or not name[0].isalpha():
+            return False  # dunders, _private, *args, non-identifiers
+        if name in loop_vars or name in common_short_vars:
+            return False  # conventional short names (i, j, n, a, b, ...) are fine
+        letters = sum(c.isalpha() for c in name)
+        if any(c.isdigit() for c in name) and letters / len(name) < 0.4:
+            return True  # digit-heavy gibberish
+        if len(name) <= 2:
+            return True  # too short to be descriptive
+        return bool(_GIBBERISH_NAME_RE.match(name.lower()))
 
     def _check_function_length(self, file_path: str, lines: list[str]) -> list[QualityIssue]:
         issues = []

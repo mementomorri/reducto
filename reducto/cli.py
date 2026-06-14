@@ -88,7 +88,7 @@ def deduplicate(
     model: str = typer.Option("", "--model"),
     prefer_remote: bool = typer.Option(False, "--prefer-remote"),
 ):
-    """Find duplicate code blocks and propose shared utility modules."""
+    """Find duplicate code blocks and propose shared utility modules (suggestion only — does not rewrite call sites)."""
     cfg = _get_cfg(config, verbose, model, True, prefer_remote)
     cfg.pre_approve = yes
     if not dry_run:
