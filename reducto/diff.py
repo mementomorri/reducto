@@ -47,10 +47,25 @@ def _apply_hunk(lines: list[str], hunk: dict) -> list[str]:
         idx += 1
     for kind, content in hunk["changes"]:
         if kind == " ":
-            if idx < len(lines):
-                result.append(lines[idx])
-                idx += 1
+            if idx >= len(lines):
+                raise DiffError(f"context past end of file at line {idx + 1}: expected {content!r}")
+            if lines[idx] != content:
+                raise DiffError(
+                    f"context mismatch at line {idx + 1}: "
+                    f"expected {content!r}, found {lines[idx]!r}"
+                )
+            result.append(lines[idx])
+            idx += 1
         elif kind == "-":
+            if idx >= len(lines):
+                raise DiffError(
+                    f"removed line past end of file at line {idx + 1}: expected {content!r}"
+                )
+            if lines[idx] != content:
+                raise DiffError(
+                    f"removed-line mismatch at line {idx + 1}: "
+                    f"expected {content!r}, found {lines[idx]!r}"
+                )
             idx += 1
         elif kind == "+":
             result.append(content)

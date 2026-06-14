@@ -5,8 +5,9 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
-from reducto.models import RefactorPlan
+from reducto.models import FileChange, RefactorPlan
 from reducto.session import SessionStore
+from reducto.utils.code_utils import strip_code_fence
 from reducto.workspace import Workspace
 
 if TYPE_CHECKING:
@@ -41,6 +42,36 @@ class BaseAgent:
         if hasattr(file, "content"):
             return file.content, file.path
         return file["content"], file["path"]
+
+    def _llm_enabled(self) -> bool:
+        # Opt-in: only when the user selected a model and a router is wired.
+        return bool(self.llm and self.workspace and self.workspace.cfg.model)
+
+    async def _llm_rewrite(
+        self, content: str, path: str, instruction: str, description: str
+    ) -> FileChange | None:
+        """Ask the LLM to rewrite a whole module; returns a reviewable change or None."""
+        if self.llm is None:
+            return None
+        prompt = (
+            f"{instruction}\nReturn ONLY the complete rewritten module, no prose.\n\n"
+            f"```python\n{content}\n```"
+        )
+        try:
+            raw = await self.llm.complete(
+                prompt, system_prompt="You are an expert Python engineer."
+            )
+        except Exception:
+            return None
+        code = strip_code_fence(raw)
+        if not code or code.strip() == content.strip():
+            return None
+        return FileChange(
+            path=path,
+            original=content,
+            modified=code if code.endswith("\n") else code + "\n",
+            description=description,
+        )
 
     def _finalize_plan(
         self, changes: list, description: str, command_type: str, **plan_kw

@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
+import ast
 import hashlib
 from pathlib import Path
 
 from reducto import diff as diff_mod
 from reducto import parse, repo
 from reducto.git_safety import GitError, GitSafety
-from reducto.lsp import LSPManager, Reference
 from reducto.models import AppConfig, ComplexityMetrics, FileChange, FileInfo, Symbol
 from reducto.runner import ProjectRunner
 
@@ -23,7 +23,6 @@ class Workspace:
         self.cfg = cfg or AppConfig()
         self._git = GitSafety(str(self.root))
         self._runner = ProjectRunner(str(self.root))
-        self._lsp: LSPManager | None = None
 
     def _resolve_path(self, path: str) -> Path:
         full = (self.root / path).resolve()
@@ -62,151 +61,109 @@ class Workspace:
             content = self.read_file(path).content
         return parse.get_complexity(content)
 
-    def _lsp_mgr(self) -> LSPManager:
-        if self._lsp is None:
-            self._lsp = LSPManager(str(self.root))
-        return self._lsp
-
-    def find_references(self, path: str, line: int, character: int = 0) -> list[Reference]:
-        return self._lsp_mgr().find_references(path, line, character)
-
-    def shutdown_lsp(self) -> None:
-        if self._lsp:
-            self._lsp.shutdown()
-            self._lsp = None
-
     def apply_diff(self, path: str, diff_text: str) -> dict:
         full = self._resolve_path(path)
-        original = full.read_text(encoding="utf-8") if full.exists() else ""
-        new_content = diff_mod.apply_unified_diff(original, diff_text)
+        if diff_text.lstrip().startswith("--- /dev/null"):
+            # A create diff (empty original) must make a NEW file. Merging it into an
+            # existing one would prepend the new content in front of the old file.
+            if full.exists():
+                raise diff_mod.DiffError(f"refusing to create over existing file: {path}")
+            new_content = diff_mod.apply_unified_diff("", diff_text)
+        else:
+            original = full.read_text(encoding="utf-8") if full.exists() else ""
+            new_content = diff_mod.apply_unified_diff(original, diff_text)
         full.parent.mkdir(parents=True, exist_ok=True)
         full.write_text(new_content, encoding="utf-8")
         rel = str(full.relative_to(self.root))
         return {"success": True, "path": rel}
 
-    def apply_diff_safe(
-        self,
-        path: str,
-        diff_text: str,
-        run_tests: bool = True,
-        *,
-        use_git: bool = True,
-    ) -> dict:
-        if use_git and self._git.is_repo():
+    def _safe_rollback(self, checkpoint: str | None, snapshot: dict[str, str | None]) -> None:
+        if checkpoint:
             try:
-                checkpoint = self._git.create_checkpoint("reducto checkpoint before diff")
-            except GitError as e:
-                return {"success": False, "path": path, "error": str(e)}
+                self._git.rollback()
+            except GitError:
+                pass
+            return
+        # No git checkpoint (non-git target): best-effort restore of pre-apply contents,
+        # so the all-or-nothing guarantee holds even without git.
+        for path, content in snapshot.items():
+            full = self._resolve_path(path)
+            if content is None:
+                full.unlink(missing_ok=True)
+            else:
+                full.write_text(content, encoding="utf-8")
+
+    def _invalid_python(self, changes: list[tuple[str, str]]) -> str | None:
+        """Return the first changed .py file that no longer parses, else None."""
+        seen: set[str] = set()
+        for path, _ in changes:
+            if path in seen or not path.endswith(".py"):
+                continue
+            seen.add(path)
+            full = self._resolve_path(path)
+            if not full.exists():
+                continue
             try:
-                self.apply_diff(path, diff_text)
-            except Exception as e:
-                try:
-                    self._git.rollback()
-                except GitError:
-                    pass
-                return {
-                    "success": False,
-                    "path": path,
-                    "checkpoint": checkpoint,
-                    "rolled_back": True,
-                    "error": str(e),
-                }
-            if not run_tests:
-                return {
-                    "success": True,
-                    "path": path,
-                    "checkpoint": checkpoint,
-                    "tests_run": False,
-                    "tests_passed": True,
-                    "rolled_back": False,
-                }
-            result = self._runner.run_tests()
-            if not result.success:
-                try:
-                    self._git.rollback()
-                except GitError:
-                    pass
-                return {
-                    "success": False,
-                    "path": path,
-                    "checkpoint": checkpoint,
-                    "tests_run": True,
-                    "tests_passed": False,
-                    "rolled_back": True,
-                    "test_output": result.output,
-                    "error": "Tests failed after diff, rolled back",
-                }
-            return {
-                "success": True,
-                "path": path,
-                "checkpoint": checkpoint,
-                "tests_run": True,
-                "tests_passed": True,
-                "rolled_back": False,
-                "test_output": result.output,
-            }
-        # no git: apply only
-        try:
-            self.apply_diff(path, diff_text)
-        except Exception as e:
-            return {"success": False, "path": path, "error": str(e)}
-        if run_tests:
-            result = self._runner.run_tests()
-            return {
-                "success": result.success,
-                "path": path,
-                "tests_run": True,
-                "tests_passed": result.success,
-                "test_output": result.output,
-                "error": None if result.success else "tests failed",
-            }
-        return {"success": True, "path": path, "tests_run": False, "tests_passed": True}
+                ast.parse(full.read_text(encoding="utf-8"))
+            except SyntaxError as e:
+                return f"{path}: {e}"
+        return None
 
     def apply_changes_safe(
         self,
         changes: list[tuple[str, str]],
         run_tests: bool = True,
     ) -> dict:
-        """Apply multiple diffs under one checkpoint; rollback all on failure."""
+        """Apply multiple diffs atomically; roll the whole batch back on any failure."""
         if not changes:
             return {"success": True, "applied": 0}
         checkpoint = None
+        snapshot: dict[str, str | None] = {}
         if self._git.is_repo():
             try:
                 checkpoint = self._git.create_checkpoint("reducto checkpoint before plan")
             except GitError as e:
                 return {"success": False, "error": str(e), "applied": 0}
+        else:
+            for path, _ in changes:
+                if path in snapshot:
+                    continue
+                full = self._resolve_path(path)
+                snapshot[path] = full.read_text(encoding="utf-8") if full.exists() else None
+        reverted = bool(checkpoint) or bool(snapshot)
         for path, diff_text in changes:
             try:
                 self.apply_diff(path, diff_text)
             except Exception as e:
-                if checkpoint:
-                    try:
-                        self._git.rollback()
-                    except GitError:
-                        pass
+                self._safe_rollback(checkpoint, snapshot)
                 return {
                     "success": False,
                     "error": str(e),
                     "path": path,
-                    "rolled_back": bool(checkpoint),
+                    "rolled_back": reverted,
                     "applied": 0,
                 }
+        # Post-apply sanity: never leave (or commit) syntactically broken Python.
+        broken = self._invalid_python(changes)
+        if broken:
+            self._safe_rollback(checkpoint, snapshot)
+            return {
+                "success": False,
+                "error": f"apply produced invalid Python: {broken}",
+                "rolled_back": reverted,
+                "applied": 0,
+            }
         if run_tests:
             result = self._runner.run_tests()
             if not result.success:
-                if checkpoint:
-                    try:
-                        self._git.rollback()
-                    except GitError:
-                        pass
+                self._safe_rollback(checkpoint, snapshot)
                 return {
                     "success": False,
                     "tests_passed": False,
-                    "rolled_back": bool(checkpoint),
+                    "rolled_back": reverted,
                     "test_output": result.output,
                     "error": "Tests failed after plan, rolled back",
-                    "applied": 0 if checkpoint else len(changes),
+                    "applied": 0,
                 }
         return {
             "success": True,

@@ -2,6 +2,9 @@
 Pattern agent for applying design patterns.
 """
 
+import os
+import re
+
 from reducto.agents.base import BaseAgent
 from reducto.models import FileChange, PatternRequest, RefactorPlan
 from reducto.session import SessionStore
@@ -34,6 +37,17 @@ class PatternAgent(BaseAgent):
             content, path = self._file_content_path(file)
             if not detect(content):
                 continue
+            if self._llm_enabled():
+                change = await self._llm_rewrite(
+                    content,
+                    path,
+                    f"Refactor this Python module to use the {pattern} design pattern "
+                    "idiomatically, preserving behaviour.",
+                    f"LLM {pattern} refactor",
+                )
+                if change:
+                    changes.append(change)
+                    continue
             if pattern == "singleton":
                 changes.append(
                     FileChange(
@@ -44,7 +58,7 @@ class PatternAgent(BaseAgent):
                     )
                 )
             else:
-                module = self._extract_module_name(path)
+                module = _module_name(path)
                 changes.append(
                     FileChange(
                         path=f"{subdir}/{module}_{pattern}.py",
@@ -56,13 +70,17 @@ class PatternAgent(BaseAgent):
         return changes
 
     async def _detect_and_suggest_patterns(self, files) -> list[FileChange]:
+        # Suggestions are written to NEW advisory modules (like the named-pattern path),
+        # never with original="" against the source file — that would prepend the template
+        # into the real file on apply.
         changes = []
         for file in files:
             content, path = self._file_content_path(file)
+            module = _module_name(path)
             if _has_complex_conditionals(content):
                 changes.append(
                     FileChange(
-                        path=path,
+                        path=f"strategies/{module}_strategy.py",
                         original="",
                         modified=_generate_strategy_template(path),
                         description="Suggest Strategy pattern for complex conditionals",
@@ -71,7 +89,7 @@ class PatternAgent(BaseAgent):
             if _has_conditional_instantiation(content):
                 changes.append(
                     FileChange(
-                        path=path,
+                        path=f"factories/{module}_factory.py",
                         original="",
                         modified=_generate_factory_template(path),
                         description="Suggest Factory pattern for conditional instantiation",
@@ -79,21 +97,12 @@ class PatternAgent(BaseAgent):
                 )
         return changes
 
-    def _extract_module_name(self, path: str) -> str:
-        import os
-
-        basename = os.path.basename(path)
-        name, _ = os.path.splitext(basename)
-        return name
-
 
 def _has_complex_conditionals(content: str) -> bool:
     return content.count("if ") + content.count("elif ") >= 5
 
 
 def _has_conditional_instantiation(content: str) -> bool:
-    import re
-
     for pattern in ("new ", "= new ", "return new "):
         if pattern in content and "if " in content:
             return True
@@ -121,8 +130,6 @@ def _has_global_state(content: str) -> bool:
 
 
 def _module_name(path: str) -> str:
-    import os
-
     name, _ = os.path.splitext(os.path.basename(path))
     return name
 

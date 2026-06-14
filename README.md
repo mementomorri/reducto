@@ -3,6 +3,7 @@
 **Semantic code compression for Python codebases.**
 
 Install, usage, and architecture: **[docs/README.md](docs/README.md)**
+What's shipped vs planned: **[ROADMAP.md](ROADMAP.md)**
 
 ```bash
 pip install "reducto[embeddings]"

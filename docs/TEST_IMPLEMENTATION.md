@@ -11,35 +11,45 @@ pip install -e ".[dev,embeddings]"
 pytest tests/ -v
 ```
 
-LSP tests are excluded by default (`-m 'not lsp'` in `pyproject.toml`). Run them when a language server is on PATH:
-
-```bash
-pytest tests/unit/test_lsp.py -m lsp -v
-```
+E2E tests run the CLI against a throwaway copy of the fixture corpus (the `sample_repo`
+fixture), so they never mutate tracked files. CI re-asserts this with `git diff --exit-code
+test-python-code/`.
 
 ## Layout
 
 | Path | Scope |
 |------|--------|
-| `tests/unit/` | Agents, repo, diff, parse, git, workspace, session |
+| `tests/unit/` | Agents, repo, diff, parse, git, workspace, session, LLM router |
 | `tests/scenario/` | Scenarios mapped to [TEST_RULES.md](TEST_RULES.md) |
 | `tests/e2e/` | CLI smoke against `test-python-code/python` |
 | `test-python-code/` | Fixture corpus (not shipped); used by unit/e2e tests |
 
-Shared fixtures live in `tests/conftest.py` (`fixture_repo_root`, `fixture_files`, `temp_git_repo`).
+Shared fixtures live in `tests/conftest.py` (`fixture_repo_root`, `fixture_files`, `sample_repo`, `temp_git_repo`).
 
 ## TEST_RULES mapping
 
 | TEST_RULES | Automated test |
 |------------|----------------|
 | §1 Python-only recognition | `tests/scenario/test_test_rules.py::test_repo_detects_python_only` |
-| §1 Project mapping | `test_analyze_returns_symbols` |
-| §2 Cross-file dedup | `test_dedup_stub_plan_on_duplicate_pair` |
+| §1 Project mapping | `test_analyze_returns_symbols`, `test_analyze_returns_symbols_and_hotspots` |
+| §2 Cross-file dedup | `test_dedup_stub_plan_on_duplicate_pair`, `test_deduplicate_groups_extracted_validator_blocks` |
 | §2 Idiomatic Python | `test_idiom_list_comp` |
 | §2 Pattern injection | `test_pattern_strategy_on_complex_conditionals` |
 | §3 Git checkpoint / rollback | `tests/unit/test_git.py`, `test_workspace.py` |
 | §5 Report | `test_reporter_writes_markdown` |
 | §6 CLI continuity | `tests/e2e/test_cli_smoke.py` |
+
+## Apply-safety regression tests
+
+These lock the apply/rollback guarantees described in [SAFETY.md](SAFETY.md):
+
+| Guarantee | Test |
+|-----------|------|
+| Idiomatize apply lands at correct lines; docstring intact | `tests/unit/test_apply_idiomatize.py` |
+| No valid `.py` becomes invalid after `idiomatize --yes` | `tests/e2e/test_cli_smoke.py::test_idiomatize_never_breaks_valid_python` |
+| Context mismatch / truncation drift raises `DiffError` | `tests/unit/test_diff.py` |
+| Invalid Python / create-over-existing / non-git failure roll back | `tests/unit/test_workspace.py` |
+| LLM tier/local/remote routing | `tests/unit/test_router.py` |
 
 ## Lint
 
@@ -49,7 +59,7 @@ black --check reducto/
 mypy reducto/ --ignore-missing-imports
 ```
 
-Coverage target: `reducto/` package (minimum 45% in CI; see `pyproject.toml`).
+Coverage target: `reducto/` package (minimum 60% in CI; see `pyproject.toml`). Current: ~73% across 105 tests.
 
 ## CI analysis job
 

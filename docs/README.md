@@ -31,8 +31,6 @@ pip install -e ".[embeddings]"
 | `embeddings` | Semantic deduplication (ChromaDB + sentence-transformers) |
 | `dev` | pytest, ruff, black, mypy (contributors) |
 
-**LSP (optional):** `find_references` can use `pylsp` or `pyright-langserver` on PATH.
-
 ### Quick install script
 
 ```bash
@@ -61,7 +59,7 @@ reducto analyze .              # Complexity hotspots and symbols
 reducto deduplicate .          # Similar blocks → proposed utils modules
 reducto idiomatize .           # Pythonic heuristics (comprehensions, etc.)
 reducto pattern factory .      # Design-pattern templates
-reducto check .                # Naming, length, complexity hints
+reducto check .                # Naming, function length, cyclomatic-complexity issues
 reducto apply <session-id>     # Apply a saved plan
 reducto sessions list          # List saved sessions
 ```
@@ -70,10 +68,10 @@ reducto sessions list          # List saved sessions
 
 | Command | What the plan contains |
 |---------|-------------------------|
-| `deduplicate` | Embeddings find similar functions/methods; proposes `utils/<symbol>_dedup.py`. Does **not** rewrite call sites yet. |
+| `deduplicate` | Embeddings find similar functions/methods; proposes `utils/<symbol>_dedup.py` (suggestion only — does **not** rewrite call sites). |
 | `pattern` | Advisory templates under `strategies/`, `factories/`, etc. (or in-file singleton). |
-| `idiomatize` | Line-level Python heuristics (e.g. list comprehensions). |
-| `apply` | Applies diffs via git checkpoint; rolls back if pytest fails. |
+| `idiomatize` | Line-level Python heuristics (e.g. list comprehensions); applied as one whole-file change per file. |
+| `apply` | All-or-nothing: git checkpoint (or in-memory snapshot), context-validated diffs, post-apply `ast.parse`, pytest; rolls back on any failure. See [SAFETY.md](SAFETY.md). |
 
 ### Flags
 
@@ -95,9 +93,11 @@ See [ARCHITECTURE.md](ARCHITECTURE.md).
 |-----|-------------|
 | [ONBOARDING.md](ONBOARDING.md) | Setup, layout, CI, extension points |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Modules and request flows |
+| [SAFETY.md](SAFETY.md) | Apply/rollback safety model and guarantees |
 | [TEST_IMPLEMENTATION.md](TEST_IMPLEMENTATION.md) | pytest and CI |
 | [TEST_RULES.md](TEST_RULES.md) | Acceptance criteria |
-| [DESIGN.md](DESIGN.md) | Product vision and roadmap |
+| [DESIGN.md](DESIGN.md) | Product vision (long-form) |
+| [ROADMAP.md](../ROADMAP.md) | What's shipped vs planned |
 
 ## License
 

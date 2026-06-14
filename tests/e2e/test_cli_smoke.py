@@ -1,26 +1,16 @@
-"""E2E smoke tests for reducto CLI."""
+"""E2E smoke tests for the reducto CLI (hermetic — never mutate the tracked corpus)."""
 
+import ast
 import subprocess
 import sys
 
 
-def test_help():
-    r = subprocess.run(
-        [sys.executable, "-m", "reducto.cli", "--help"], capture_output=True, text=True
-    )
-    assert r.returncode == 0
-    assert "analyze" in r.stdout
-
-
-def test_analyze_sample_repo():
-    r = subprocess.run(
-        [sys.executable, "-m", "reducto.cli", "analyze", "test-python-code/python"],
-        capture_output=True,
-        text=True,
-        timeout=120,
-    )
-    assert r.returncode == 0
-    assert "Files:" in r.stdout
+def _parses(path) -> bool:
+    try:
+        ast.parse(path.read_text(encoding="utf-8"))
+        return True
+    except SyntaxError:
+        return False
 
 
 def _run_cli(*args: str) -> subprocess.CompletedProcess:
@@ -32,18 +22,56 @@ def _run_cli(*args: str) -> subprocess.CompletedProcess:
     )
 
 
-def test_check_sample_repo():
-    r = _run_cli("check", "test-python-code/python")
+def test_help():
+    r = _run_cli("--help")
     assert r.returncode == 0
-    assert "Issues:" in r.stdout or "issues" in r.stdout.lower()
+    assert "analyze" in r.stdout
 
 
-def test_idiomatize_sample_repo():
-    r = _run_cli("idiomatize", "test-python-code/python", "--yes")
+def test_analyze_sample_repo(sample_repo):
+    r = _run_cli("analyze", str(sample_repo))
+    assert r.returncode == 0
+    assert "Files:" in r.stdout
+    assert "Symbols: 0" not in r.stdout  # parser must extract symbols
+
+
+def test_check_sample_repo(sample_repo):
+    r = _run_cli("check", str(sample_repo))
+    assert r.returncode == 0
+    assert "Issues:" in r.stdout
+
+
+def test_idiomatize_sample_repo(sample_repo):
+    r = _run_cli("idiomatize", str(sample_repo), "--yes")
     assert r.returncode == 0
 
 
-def test_deduplicate_sample_repo():
-    r = _run_cli("deduplicate", "test-python-code/python/duplicates", "--yes")
+def test_idiomatize_never_breaks_valid_python(sample_repo):
+    # ROADMAP P0 guard: the apply path used to drop snippet edits at line 1 and
+    # corrupt files. No file that parsed before may fail to parse after.
+    py_files = [p for p in sample_repo.rglob("*.py") if ".reducto" not in p.parts]
+    valid_before = {p for p in py_files if _parses(p)}
+    assert valid_before  # corpus has real Python to protect
+
+    r = _run_cli("idiomatize", str(sample_repo), "--yes")
     assert r.returncode == 0
-    assert "session" in r.stdout.lower() or "duplicate" in r.stdout.lower()
+
+    regressions = [str(p) for p in valid_before if not _parses(p)]
+    assert not regressions, f"idiomatize corrupted valid files: {regressions}"
+
+
+def test_deduplicate_sample_repo(sample_repo):
+    r = _run_cli("deduplicate", str(sample_repo / "duplicates"), "--yes")
+    assert r.returncode == 0
+    assert "duplicate" in r.stdout.lower()
+
+
+def test_apply_unknown_session_exits_1(sample_repo):
+    r = _run_cli("apply", "does-not-exist", str(sample_repo))
+    assert r.returncode == 1
+    assert "not found" in r.stderr.lower()
+
+
+def test_sessions_show_unknown_exits_1(sample_repo):
+    r = _run_cli("sessions", "show", "nope", "-C", str(sample_repo))
+    assert r.returncode == 1

@@ -1,5 +1,6 @@
 """Pytest fixtures."""
 
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -17,9 +18,23 @@ def fixture_repo_root() -> Path:
 
 @pytest.fixture
 def fixture_files():
+    # Relies on walk() excluding .reducto/dotdirs so this stays Python-only;
+    # if that exclusion regresses, scenario tests fail (intended signal).
     from reducto.repo import walk
 
     return walk(str(FIXTURE_REPO))
+
+
+@pytest.fixture
+def sample_repo(tmp_path: Path) -> Path:
+    """A throwaway copy of the fixture corpus so mutating commands stay hermetic."""
+    dest = tmp_path / "python"
+    shutil.copytree(
+        FIXTURE_REPO,
+        dest,
+        ignore=shutil.ignore_patterns(".reducto", "__pycache__"),
+    )
+    return dest
 
 
 @pytest.fixture

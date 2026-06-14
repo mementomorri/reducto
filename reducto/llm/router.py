@@ -1,7 +1,6 @@
 """LLM router for model selection and completion."""
 
 import logging
-import os
 from typing import Any
 
 import httpx
@@ -71,16 +70,7 @@ class LLMRouter:
     def get_model_for_tier(
         self, tier: ModelTier, prefer_local: bool | None = None, model_override: str | None = None
     ) -> str:
-        """Get the appropriate model name for a tier.
-
-        Args:
-            tier: The model tier (light, medium, heavy)
-            prefer_local: Whether to prefer local Ollama models (default: use instance setting)
-            model_override: If set, use this model directly bypassing tier selection (default: use instance setting)
-
-        Returns:
-            The model identifier string
-        """
+        """Resolve a model id for a tier; an override bypasses tier selection."""
         actual_model_override = model_override or self.model_override
         actual_prefer_local = prefer_local if prefer_local is not None else self.prefer_local
 
@@ -120,17 +110,7 @@ class LLMRouter:
         max_tokens: int = 2048,
         **kwargs,
     ) -> str:
-        """Generate completion using appropriate model.
-
-        Args:
-            prompt: The user prompt
-            tier: Model tier (light/medium/heavy)
-            system_prompt: Optional system prompt
-            prefer_local: Override for prefer_local (default: use instance setting)
-            model_override: Override for model (default: use instance setting)
-            temperature: Sampling temperature
-            max_tokens: Maximum tokens to generate
-        """
+        """Generate a completion with the tier's (or overridden) model."""
         actual_prefer_local = prefer_local if prefer_local is not None else self.prefer_local
         actual_model_override = model_override or self.model_override
         model = self.get_model_for_tier(tier, actual_prefer_local, actual_model_override)
@@ -167,106 +147,3 @@ class LLMRouter:
         except Exception as e:
             logger.error(f"LLM call failed: {e}")
             raise
-
-    async def complete_with_context(
-        self,
-        prompt: str,
-        context: list[str],
-        tier: ModelTier = ModelTier.MEDIUM,
-        model_override: str | None = None,
-        prefer_local: bool | None = None,
-        **kwargs,
-    ) -> str:
-        """Generate completion with code context."""
-        system_prompt = """You are an expert code analyst. Analyze the provided code 
-and provide clear, actionable recommendations. Focus on:
-- Code quality and maintainability
-- Design patterns and idiomatic code
-- Potential bugs or issues
-- Performance considerations"""
-
-        full_prompt = "Context:\n" + "\n---\n".join(context) + "\n\n" + prompt
-        return await self.complete(
-            full_prompt,
-            tier=tier,
-            system_prompt=system_prompt,
-            model_override=model_override,
-            prefer_local=prefer_local,
-            **kwargs,
-        )
-
-    async def analyze_code(
-        self,
-        code: str,
-        question: str,
-        tier: ModelTier = ModelTier.MEDIUM,
-        model_override: str | None = None,
-        prefer_local: bool | None = None,
-    ) -> str:
-        """Analyze code and answer a question about it."""
-        prompt = f"""Code:
-```
-{code}
-```
-
-Question: {question}
-
-Provide a detailed analysis."""
-        return await self.complete(
-            prompt, tier=tier, prefer_local=prefer_local, model_override=model_override
-        )
-
-    async def suggest_refactor(
-        self,
-        code: str,
-        language: str,
-        goal: str,
-        tier: ModelTier = ModelTier.MEDIUM,
-        model_override: str | None = None,
-        prefer_local: bool | None = None,
-    ) -> str:
-        """Suggest refactoring for a code block."""
-        system_prompt = f"""You are an expert {language} developer. 
-Provide refactoring suggestions that:
-- Follow idiomatic {language} patterns
-- Improve code readability
-- Reduce complexity
-- Maintain functional equivalence"""
-
-        prompt = f"""Code to refactor:
-```
-{code}
-```
-
-Refactoring goal: {goal}
-
-Provide:
-1. A brief explanation of what should be changed
-2. The refactored code
-3. Why this is an improvement"""
-
-        return await self.complete(
-            prompt,
-            tier=tier,
-            system_prompt=system_prompt,
-            prefer_local=prefer_local,
-            model_override=model_override,
-        )
-
-    def update_config(self, tier: str, config: dict[str, Any]) -> None:
-        """Update configuration for a specific tier."""
-        if tier not in [t.value for t in ModelTier]:
-            raise ValueError(f"Invalid tier: {tier}")
-        self.config[tier] = config
-        self._local_available = None
-
-    def set_api_key(self, provider: str, api_key: str) -> None:
-        """Set API key for a provider."""
-        if provider == "openai":
-            os.environ["OPENAI_API_KEY"] = api_key
-        elif provider == "anthropic":
-            os.environ["ANTHROPIC_API_KEY"] = api_key
-        elif provider == "openrouter":
-            os.environ["OPENROUTER_API_KEY"] = api_key
-        else:
-            logger.warning(f"Unknown provider: {provider}")

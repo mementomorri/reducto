@@ -37,6 +37,13 @@ class DeduplicatorAgent(BaseAgent):
 
     async def find_duplicates(self, request: DeduplicateRequest) -> RefactorPlan:
         files = request.files or self.workspace.list_files()
+        if not self.embedding_service.is_using_real_embeddings:
+            return self._finalize_plan(
+                [],
+                "Semantic embeddings unavailable — install the extra "
+                "(pip install -e '.[embeddings]'); no duplicates analyzed.",
+                "deduplicate",
+            )
         blocks = self._extract_blocks(files)
         groups = await self.embedding_service.find_duplicates(blocks, request.similarity_threshold)
         changes = []
@@ -47,7 +54,8 @@ class DeduplicatorAgent(BaseAgent):
                     changes.append(ch)
         return self._finalize_plan(
             changes,
-            f"Found {len(groups)} duplicate groups; proposed {len(changes)} changes.",
+            f"Found {len(groups)} duplicate group(s); proposing {len(changes)} shared-util "
+            "suggestion(s) (review before adopting — call sites are not rewritten).",
             "deduplicate",
         )
 
@@ -84,5 +92,8 @@ class DeduplicatorAgent(BaseAgent):
             path=f"utils/{primary.symbol_name}_dedup.py",
             original="",
             modified=primary.content,
-            description=f"Extract duplicate '{primary.symbol_name}' from {len(group)} locations",
+            description=(
+                f"Proposed shared util for '{primary.symbol_name}' from {len(group)} sites "
+                "(suggestion only — not auto-applied; call sites are not rewritten)"
+            ),
         )

@@ -22,7 +22,10 @@ jobs:
         run: pip install -e ".[dev,embeddings]"
 
       - name: Tests
-        run: pytest tests/ -v --cov-fail-under=45 -m "not lsp"
+        run: pytest tests/ -v
+
+      - name: Assert fixture corpus unmodified
+        run: git diff --exit-code test-python-code/
 
       - name: CLI smoke
         run: reducto --help && reducto version

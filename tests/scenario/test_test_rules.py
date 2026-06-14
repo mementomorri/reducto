@@ -39,6 +39,44 @@ async def test_analyze_returns_symbols(fixture_files):
 
 
 @pytest.mark.asyncio
+async def test_analyze_returns_symbols_and_hotspots(fixture_files):
+    # Regression for the parser-shadow bug: high_complexity.py guarantees a hotspot
+    # once symbol extraction works (default CC threshold = 10).
+    ws = Workspace(str(FIXTURE))
+    result = await AnalyzerAgent(ws).analyze(AnalyzeRequest(path=str(FIXTURE), files=fixture_files))
+    assert result.total_symbols > 0
+    assert len(result.hotspots) > 0
+
+
+@pytest.mark.asyncio
+async def test_deduplicate_groups_extracted_validator_blocks():
+    # The agent must extract real blocks from both validator files; with the
+    # parser-shadow bug it extracts none, the mock sees [], and no change is made.
+    auth = (FIXTURE / "duplicates" / "auth_validator.py").read_text(encoding="utf-8")
+    user = (FIXTURE / "duplicates" / "user_validator.py").read_text(encoding="utf-8")
+
+    async def group_email_blocks(blocks, threshold):
+        emails = [b for b in blocks if "email" in b.content.lower()]
+        return [emails] if len(emails) >= 2 else []
+
+    emb = MagicMock()
+    emb.find_duplicates = AsyncMock(side_effect=group_email_blocks)
+    ws = Workspace(str(FIXTURE / "duplicates"))
+    plan = await DeduplicatorAgent(ws, emb).find_duplicates(
+        DeduplicateRequest(
+            path=str(FIXTURE / "duplicates"),
+            files=[
+                FileInfo(path="auth_validator.py", content=auth),
+                FileInfo(path="user_validator.py", content=user),
+            ],
+        )
+    )
+    assert plan.changes
+    assert plan.changes[0].path == "utils/validate_email_address_dedup.py"
+    assert plan.changes[0].original == ""
+
+
+@pytest.mark.asyncio
 async def test_dedup_stub_plan_on_duplicate_pair():
     auth = (FIXTURE / "duplicates" / "auth_validator.py").read_text(encoding="utf-8")
     user = (FIXTURE / "duplicates" / "user_validator.py").read_text(encoding="utf-8")

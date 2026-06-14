@@ -4,6 +4,7 @@ Guide for engineers maintaining **reducto** — a Python CLI that refactors **Py
 
 - Vision: [DESIGN.md](DESIGN.md)
 - Architecture: [ARCHITECTURE.md](ARCHITECTURE.md)
+- Apply safety model: [SAFETY.md](SAFETY.md)
 - User guide: [README.md](README.md)
 - Testing: [TEST_IMPLEMENTATION.md](TEST_IMPLEMENTATION.md), [TEST_RULES.md](TEST_RULES.md)
 
@@ -22,7 +23,7 @@ Non-Python files are ignored by the walker and report `Language.UNKNOWN` if refe
 | `reducto/` | Shipped package |
 | `reducto/cli.py` | Typer entrypoint |
 | `reducto/services.py` | `App` orchestration |
-| `reducto/workspace.py` | Repo I/O, parse, apply, git, tests, LSP |
+| `reducto/workspace.py` | Repo I/O, parse, apply, git, tests |
 | `reducto/parse.py` | tree-sitter-python |
 | `reducto/agents/` | Analyzer, deduplicator, idiomatizer, pattern, quality |
 | `tests/` | pytest (unit, scenario, e2e) |
@@ -37,10 +38,10 @@ python3.14 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev,embeddings]"
 reducto version
-pytest tests/ -v -m "not lsp"
+pytest tests/ -v
 ```
 
-Optional: Ollama, cloud API keys, `pylsp` or `pyright-langserver` for LSP tests.
+Optional: Ollama or cloud API keys for LLM-backed routing.
 
 ### Configuration
 
@@ -61,7 +62,7 @@ exclude_patterns: [".git", "node_modules", "venv", "__pycache__"]
 | `deduplicate` | `deduplicate` | Embeddings on Python functions/methods |
 | `idiomatize` | `idiomatize` | Python heuristics only |
 | `pattern` | `pattern` | Template `.py` modules |
-| `check` | `check` | Python naming/length/complexity |
+| `check` | `check` | Naming, function length, per-function cyclomatic complexity |
 | `apply` | `apply_plan` | Session JSON → safe apply |
 
 ## Extending
@@ -91,6 +92,6 @@ reducto deduplicate test-python-code/python --dry-run
 | CLI | `reducto/cli.py` |
 | Empty plan | `reducto/agents/*` |
 | Parse/symbols | `reducto/parse.py`, `reducto/repo.py` |
-| Apply/rollback | `reducto/workspace.py`, `runner.py` |
+| Apply/rollback | `reducto/workspace.py`, `diff.py`, `runner.py` (see [SAFETY.md](SAFETY.md)) |
 | LLM | `reducto/llm/router.py` |
 | Sessions | `.reducto/sessions/`, `session.py` |
